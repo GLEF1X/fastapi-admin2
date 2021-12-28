@@ -1,0 +1,15 @@
+<div class="form-group mb-3">
+    <div class="form-label">{{ label }}</div>
+    <label class="form-check form-switch">
+        <input name="{{ name }}" class="form-check-input" type="checkbox" {% if value %}
+               checked
+        {% endif %} {% if disabled %}
+               disabled
+        {% endif %} >
+        {% if help_text %}
+            <small class="form-hint">
+                {{ help_text }}
+            </small>
+        {% endif %}
+    </label>
+</div>

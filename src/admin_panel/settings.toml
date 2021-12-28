@@ -1,0 +1,22 @@
+[development]
+
+[development.server]
+port = "8000"
+host = "127.0.0.1"
+log_level = "info"
+reload = true
+api_version = "v1"
+api_path = "@format /api/{this.server.api_version}"
+show_error_details = true
+is_production = false
+
+[development.web.logs]
+ignore_loggers = [""]
+logging_level = "DEBUG"
+
+[development.web.docs]
+path = "@format {this.web.api_path}/docs"
+json_spec_path = "@format {this.web.api_path}/openapi.json"
+yaml_spec_path = "@format {this.web.api_path}/openapi.yaml"
+title = "Simple customer-friendly API"
+version = "0.1 beta"

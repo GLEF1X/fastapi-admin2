@@ -1,0 +1,247 @@
+{% extends "layout.html" %}
+{% block page_body %}
+<div class="col-12">
+    <div class="card">
+        <div class="card-header">
+            <form
+                    action="{{ request.app.admin_path }}/{{ resource }}/list"
+                    method="get"
+                    class="w-100"
+            >
+                <div class="d-flex">
+                    <div class="text-muted">
+                        {{ _('show') }}
+                        <div class="mx-2 d-inline-block">
+                            <input
+                                    type="text"
+                                    class="form-control"
+                                    value="{{ page_size }}"
+                                    size="2"
+                                    name="page_size"
+                                    aria-label="entries count"
+                            />
+                        </div>
+                        {{ _('entries') }}
+                    </div>
+                    <div class="d-flex ms-auto">
+                        {% for filter in filters %}
+                        <div class="mx-2">{{ filter|safe }}</div>
+                        {% endfor %}
+                        <div class="ms-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-2"></i>
+                                {{ _('search') }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="card-body border-bottom py-3 d-flex">
+            <div id="bulk-actions">
+                {% if model_resource.bulk_actions %}
+                <span class="dropdown">
+                <button class="btn dropdown-toggle align-text-top" data-bs-boundary="viewport"
+                        data-bs-toggle="dropdown">
+                  {{ _('bulk_actions') }}
+                </button>
+                <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+                    {% for action in model_resource.bulk_actions %}
+                        {% set url = request.app.admin_path + '/' + resource +'/'+ action.name %}
+                        <a
+                                class="dropdown-item"
+                                {% if action.ajax %}
+                                href="#"
+                                onclick="onBulkAction('{{ url }}','{{ action.method }}')"
+                                {% else %}
+                                href="{{ url }}"
+                                {% endif %}
+                        >
+                    <i class="{{ action.icon }} me-2"></i>
+                    {{ action.label }}
+                  </a>
+                    {% endfor %}
+                </div>
+              </span>
+                {% endif %}
+            </div>
+            <div id="toolbar-actions" class="ms-auto btn-list">
+                {% for action in model_resource.toolbar_actions %}
+                <a class="btn {{ action.class_ }}"
+                   href="{{ request.app.admin_path }}/{{ resource }}/{{ action.name }}">
+                    <i class="{{ action.icon }} me-2"></i>
+                    {{ action.label }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table card-table table-vcenter text-nowrap datatable">
+                <thead>
+                <tr>
+                    {% if model_resource.bulk_actions %}
+                    <th class="w-1">
+                        <input
+                                class="form-check-input m-0 align-middle"
+                                type="checkbox"
+                                id="checkbox-select-all"
+                        />
+                    </th>
+                    {% endif %}
+                    {% for label in fields_label %}
+                    <th>{{ label }}</th>
+                    {% endfor %}
+                    {% if model_resource.actions %}
+                    <th></th>
+                    {% endif %}
+                </tr>
+                </thead>
+                <tbody>
+                {% for value in rendered_values %}
+                <tr {% for k,v in row_attributes[loop.index0].items() %}{{ k }}="{{ v }}" {% endfor %}>
+                    {% if model_resource.bulk_actions %}
+                    <td>
+                        <input
+                                data-id="{{ value[0]|int }}"
+                                class="form-check-input m-0 align-middle checkbox-select-item"
+                                type="checkbox"
+                        />
+                    </td>
+                    {% endif %}
+                    {% with outer_index = loop.index0 %}
+                    {% for x in value %}
+                    <td {% for k,v in cell_attributes[outer_index][loop.index0].items() %}
+                        {{ k }}="{{ v }}" {% endfor %}>{{ x|safe }}
+                    </td>
+                    {% endfor %}
+                    {% endwith %}
+                    {% if model_resource.actions %}
+                    <td class="text-end">
+              <span class="dropdown">
+                <button
+                        class="btn dropdown-toggle align-text-top"
+                        data-bs-boundary="viewport"
+                        data-bs-toggle="dropdown"
+                >
+                  {{ _('actions') }}
+                </button>
+                <div
+                        class="dropdown-menu dropdown-menu-end dropdown-menu-arrow"
+                >
+                {% for action in model_resource.actions %}
+                    {% set url = request.app.admin_path + '/' + resource +'/'+ action.name +'/'+ value[0]|string %}
+                    <a
+                            class="dropdown-item"
+                            {% if action.ajax %}
+                            href="#"
+                            onclick="onAction('{{ url }}','{{ action.method }}')"
+                            {% else %}
+                            href="{{ url }}"
+                            {% endif %}
+                    >
+                    <i class="{{ action.icon }} me-2"></i>
+                    {{ action.label }}
+                  </a>
+                {% endfor %}
+                </div>
+              </span>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer d-flex align-items-center">
+            <p class="m-0 text-muted">
+                {{ _('Showing %(from)s to %(to)s of %(total)s entries')|format(from=from,to=to,total=total) }}
+            </p>
+            <ul class="pagination m-0 ms-auto">
+                <li class="page-item {% if page_num <= 1 %} disabled {% endif %}">
+                    <a
+                            class="page-link"
+                            href="{{ {'page_num':page_num - 1}|current_page_with_params }}"
+                            tabindex="-1"
+                            aria-disabled="true"
+                    >
+                        <i class="ti ti-chevron-left"></i>
+                        {{ _('prev_page') }}
+                    </a>
+                </li>
+                {% with total_page = (total/page_size)|round(0,'ceil')|int,start_page =
+                (1 if page_num <=3 else page_num - 2 ) %} {% for i in
+                range(start_page,[start_page + 5,total_page + 1]|min) %}
+                <li class="page-item {% if i == (page_num or 1) %} active {% endif %}">
+                    <a
+                            class="page-link"
+                            href="{{ {'page_num':i}|current_page_with_params }}"
+                    >{{ i }}</a
+                    >
+                </li>
+                {% endfor %}
+                <li
+                        class="page-item {% if page_num >= total_page %} disabled {% endif %}"
+                >
+                    <a
+                            class="page-link"
+                            href="{{ {'page_num':page_num + 1}|current_page_with_params }}"
+                    >
+                        {{ _('next_page') }}
+                        <i class="ti ti-chevron-right"></i>
+                    </a>
+                </li>
+                {% endwith %}
+            </ul>
+        </div>
+    </div>
+</div>
+<script>
+    function onAction(url, method) {
+        $.ajax({
+            url: url,
+            method: method,
+            success: function () {
+                location.reload();
+            },
+        });
+    }
+
+    function onBulkAction(url, method) {
+        let ids = $('.checkbox-select-item:checked').map(function () {
+            return $(this).attr('data-id')
+        }).get();
+        if (ids.length > 0) {
+            console.log(ids)
+            $.ajax({
+                url: url + '?ids=' + ids,
+                method: method,
+                success: function () {
+                    location.reload();
+                },
+            });
+        }
+    }
+
+    let checkbox = $('#checkbox-select-all');
+    let bulk_actions = $('#bulk-actions').hide();
+
+    checkbox.change(function () {
+        let checked = checkbox.prop('checked');
+        $('.checkbox-select-item').prop("checked", checked);
+        if (checked) {
+            bulk_actions.show();
+        } else {
+            bulk_actions.hide();
+        }
+    });
+    $('.checkbox-select-item').change(function () {
+        let length = $('.checkbox-select-item:checked').length;
+        if (length === 0) {
+            bulk_actions.hide();
+        } else {
+            bulk_actions.show();
+        }
+    });
+</script>
+
+{% endblock %}

@@ -1,0 +1,39 @@
+[tool.poetry]
+name = "fastapi-admin-astro"
+version = "0.1.0"
+description = ""
+authors = ["Gleb Garanin <glebgar567@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+asyncpg = "^0.25.0"
+dynaconf = "^3.1.7"
+Babel = "*"
+aiofiles = "*"
+aioredis = "*"
+bcrypt = "*"
+fastapi = "*"
+jinja2 = "*"
+python-multipart = "*"
+tortoise-orm = "*"
+uvicorn = { version = "*", extras = ["standard"] }
+pendulum = "*"
+argon2-cffi = "^21.3.0"
+
+
+[tool.poetry.dev-dependencies]
+# lint
+black = "*"
+flake8 = "*"
+isort = "*"
+mypy = "*"
+pylint = "*"
+# example
+asyncmy = "*"
+python-dotenv = "*"
+pytest = "^6.2.5"
+pytest-asyncio = "^0.16.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
