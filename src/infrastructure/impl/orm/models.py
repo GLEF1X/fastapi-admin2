@@ -1,13 +1,17 @@
-from sqlalchemy import Column, TIMESTAMP, func, Text, VARCHAR, Boolean, false, BIGINT, Identity, JSON
+from sqlalchemy import Column, TIMESTAMP, func, Text, VARCHAR, Boolean, false, BIGINT, Identity, JSON, Enum, \
+    ForeignKey
+from sqlalchemy.orm import relationship
 
-from fastapi_admin.database.models.abstract import Admin
+from fastapi_admin.database.models.abstract_admin import AbstractAdmin
 from fastapi_admin.database.models.base import OrmModelBase
+from src.entities.enums import Status
 
 
-class Admin(Admin):
+class Admin(AbstractAdmin):
+    __tablename__ = "admins"
+
     last_login = Column(TIMESTAMP(timezone=True), server_default=func.now())
     email = Column(VARCHAR(200), default="")
-    avatar = Column(VARCHAR(200), server_default="")
     intro = Column(Text, server_default="")
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
 
@@ -15,21 +19,28 @@ class Admin(Admin):
         return f"{self.id}#{self.username}"
 
 
-# class Category(Model):
-#     slug = Column(VARCHAR(200))
-#     name = Column(VARCHAR(200))
-#     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+class Category(OrmModelBase):
+    __tablename__ = "categories"
+
+    id = Column(BIGINT(), Identity(always=True, cache=10), primary_key=True)
+    slug = Column(VARCHAR(200))
+    name = Column(VARCHAR(200))
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+    def __str__(self) -> str:
+        return self.name
 
 
 class Product(OrmModelBase):
     id = Column(BIGINT(), Identity(always=True, cache=10), primary_key=True)
-    # categories = fields.ManyToManyField("models.Category")
+    category_id = Column(BIGINT(), ForeignKey("categories.id"), nullable=False)
     name = Column(VARCHAR(50), default="")
     is_reviewed = Column(Boolean, server_default=false())
-    # type = fields.IntEnumField(ProductType, description="Product Type")
     avatar = Column(VARCHAR(200), server_default="")
     body = Column(Text, nullable=False)
     created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+
+    category: Category = relationship("Category", backref="products")
 
 
 class Config(OrmModelBase):
@@ -37,4 +48,4 @@ class Config(OrmModelBase):
     label = Column(VARCHAR(200), server_default="")
     key = Column(VARCHAR(20), nullable=False, unique=True)
     value = Column(JSON(), nullable=False)
-    # status: Status = fields.IntEnumField(Status, default=Status.on)
+    status = Column(Enum(Status), nullable=False, default=Status.on)

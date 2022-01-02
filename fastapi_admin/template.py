@@ -18,7 +18,7 @@ templates.env.add_extension("jinja2.ext.autoescape")
 
 @pass_context
 def current_page_with_params(context: dict, params: dict):
-    request = context["request"]  # type:Request
+    request = context["request"]  # type: Request
     full_path = request.scope["raw_path"].decode()
     query_params = dict(request.query_params)
     for k, v in params.items():
@@ -35,4 +35,4 @@ def set_global_env(name: str, value: Any):
 
 def add_template_folder(*folders: str):
     for folder in folders:
-        templates.env.loader.searchpath.insert(0, folder)
+        templates.env.loader.searchpath.insert(0, folder)  # type: ignore

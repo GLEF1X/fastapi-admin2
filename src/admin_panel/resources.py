@@ -1,18 +1,20 @@
 from datetime import datetime
-from typing import List
+from typing import List, Any
+
+import orjson
+from sqlalchemy.sql.operators import ilike_op
+from starlette.requests import Request
 
 from fastapi_admin.app import FastAPIAdmin
 from fastapi_admin.constants import DATETIME_FORMAT
 from fastapi_admin.enums import HTTPMethod
-from fastapi_admin.services.file_upload import DiskFileUploader
+from fastapi_admin.file_upload import DiskFileUploader
 from fastapi_admin.resources import Action, Dropdown, Field, Link, Model, ToolbarAction
 from fastapi_admin.widgets import displays, filters, inputs
-from starlette.requests import Request
-
 from src.admin_panel.settings import BASE_DIR
 from src.entities import enums
 from src.entities.enums import ProductType
-from src.infrastructure.impl.orm.models import Admin, Product, Config
+from src.infrastructure.impl.orm.models import Product, Config, Category, Admin
 
 upload = DiskFileUploader(uploads_dir=BASE_DIR / "static" / "uploads")
 
@@ -42,10 +44,9 @@ class AdminResource(Model):
         filters.Search(
             name="username",
             label="Имя",
-            search_mode="contains",
             placeholder="Никнейм",
         ),
-        filters.Datetime(name="created_at", label="Дата создания"),
+        filters.DatetimeRange(name="created_at", label="Дата создания"),
     ]
     fields = [
         "id",
@@ -70,7 +71,7 @@ class AdminResource(Model):
         return []
 
     async def cell_attributes(self, request: Request, obj: dict, field: Field) -> dict:
-        if field.name == "id":
+        if field.name.lower() == "id":
             return {"class": "bg-danger text-white"}
         return await super().cell_attributes(request, obj, field)
 
@@ -83,7 +84,8 @@ class AdminResource(Model):
 
 class Content(Dropdown):
     class CategoryResource(Model):
-        label = "Категория"
+        model = Category
+        label = "Категории"
         fields = ["id", "name", "slug", "created_at"]
 
     class ProductResource(Model):
@@ -91,7 +93,8 @@ class Content(Dropdown):
         model = Product
         filters = [
             filters.Enum(enum=enums.ProductType, name="type", label="Тип продукта"),
-            filters.Datetime(name="created_at", label="Дата создания"),
+            filters.DatetimeRange(name="created_at", label="Дата создания"),
+            filters.Boolean(name="is_reviewed", label="Готов к продаже")
         ]
 
         fields = [
@@ -105,11 +108,16 @@ class Content(Dropdown):
                 "created_at", label="Дата создания",
                 input_=inputs.DateTime(default=datetime.now().strftime(DATETIME_FORMAT))
             ),
+            Field(
+                "category_id",
+                label="Категория",
+                input_=inputs.ForeignKey(to_column=Product.category_id)
+            )
         ]
 
     label = "Контент"
     icon = "fas fa-bars"
-    resources = [ProductResource]
+    resources = [ProductResource, CategoryResource]
 
 
 class ConfigResource(Model):
@@ -118,13 +126,18 @@ class ConfigResource(Model):
     icon = "fas fa-cogs"
     filters = [
         filters.Enum(enum=enums.Status, name="status", label="Статус"),
-        filters.Search(name="key", label="Ключ"),
+        filters.Search(name="key", label="Ключ", comparator=ilike_op),
     ]
     fields = [
         "id",
         Field("label", label="ярлык"),
         Field("key", label="ключ"),
-        Field("value", label="значение"),
+        Field(
+            "value",
+            label="значение",
+            display=displays.Json(dumper=orjson.dumps),
+            input_=inputs.Json(dumper=orjson.dumps)
+        ),
         Field(
             name="status",
             label="статус",
@@ -132,9 +145,9 @@ class ConfigResource(Model):
         ),
     ]
 
-    async def row_attributes(self, request: Request, obj: dict) -> dict:
-        if obj.get("status") == enums.Status.on:
-            return {"class": "bg-green text-white"}
+    async def row_attributes(self, request: Request, obj: Any) -> dict:
+        if getattr(obj, "status") == enums.Status.on:
+            return {"class": "bg-green"}
         return await super().row_attributes(request, obj)
 
     async def get_actions(self, request: Request) -> List[Action]:

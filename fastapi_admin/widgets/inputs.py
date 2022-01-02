@@ -1,14 +1,18 @@
 import abc
 import json
 from enum import Enum as EnumCLS
-from typing import Any, List, Optional, Tuple, Type
+from typing import Any, List, Optional, Tuple, Type, Callable
 
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import UploadFile
 from starlette.requests import Request
-from tortoise import Model
 
 from fastapi_admin import constants
-from fastapi_admin.services.file_upload import FileUploader
+from fastapi_admin.file_upload import FileUploader
+from fastapi_admin.general_dependencies import SessionMakerDependencyMarker
+from fastapi_admin.utils.depends import get_dependency_from_request_by_marker
+from fastapi_admin.utils.sqlalchemy import get_primary_key, get_related_querier_from_model_by_foreign_key
 from fastapi_admin.widgets import Widget
 
 
@@ -93,35 +97,36 @@ class Select(Input):
         return await super(Select, self).render(request, value)
 
 
-class ForeignKey(Select):
+class ForeignKey(Input):
+    template = "widgets/inputs/select.html"
+
     def __init__(
             self,
-            model: Type[Model],
+            to_column: Any,
             default: Any = None,
             null: bool = False,
             disabled: bool = False,
             help_text: Optional[str] = None,
     ):
         super().__init__(help_text=help_text, default=default, null=null, disabled=disabled)
-        self.model = model
+        self.querier = get_related_querier_from_model_by_foreign_key(to_column)
+        self._pk = get_primary_key(self.querier)
 
-    async def get_options(self):
-        ret = await self.get_queryset()
-        options = [(str(x), x.pk) for x in ret]
-        if self.context.get("null"):
-            options = [("", "")] + options
-        return options
-
-    async def get_queryset(self):
-        return await self.model.all()
+    async def render(self, request: Request, value: Any):
+        session_pool = get_dependency_from_request_by_marker(request, SessionMakerDependencyMarker)
+        async with session_pool.begin() as session:  # type: AsyncSession
+            results = (await session.execute(select(self.querier))).scalars().all()
+            options = [(str(model), getattr(model, self._pk)) for model in results]
+        self.context.update(options=options)
+        return await super().render(request, value)
 
 
-class ManyToMany(Select):
+class ManyToMany(Input):
     template = "widgets/inputs/many_to_many.html"
 
     def __init__(
             self,
-            model: Type[Model],
+            model: Type[Any],
             disabled: bool = False,
             help_text: Optional[str] = None,
     ):
@@ -182,6 +187,7 @@ class Json(Input):
             help_text: Optional[str] = None,
             null: bool = False,
             options: Optional[dict] = None,
+            dumper: Callable[..., Any] = json.dumps
     ):
         """
         options config to jsoneditor, see https://github.com/josdejong/jsoneditor
@@ -191,10 +197,11 @@ class Json(Input):
         if not options:
             options = {}
         self.context.update(options=options)
+        self._dumper = dumper
 
     async def render(self, request: Request, value: Any):
         if value:
-            value = json.dumps(value)
+            value = self._dumper.dumps(value)
         return await super().render(request, value)
 
 
@@ -314,7 +321,7 @@ class Switch(Input):
 
 
 class Password(Text):
-    input_type = "renew_password"
+    input_type = "password"
 
 
 class Number(Text):

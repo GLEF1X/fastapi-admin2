@@ -1,19 +1,31 @@
 import abc
+import operator
 from enum import Enum as EnumCLS
-from typing import Any, List, Optional, Tuple, Type
+from typing import Any, List, Optional, Tuple, Type, Callable
 
 import pendulum
-from sqlalchemy import select
-from sqlalchemy.sql import Select as SqalchemySelect
+from sqlalchemy import between, Column
+from sqlalchemy.sql import Select as SqalchemySelect, ClauseElement
+from sqlalchemy.sql.operators import is_
 from starlette.requests import Request
-from tortoise import Model
 
 from fastapi_admin import constants
+from fastapi_admin.i18n.context import lazy_gettext as _
 from fastapi_admin.widgets.inputs import Input
 
 
+def between_comparator_for_date_range(
+        column: Column,
+        date_range: Tuple[pendulum.DateTime, pendulum.DateTime]
+):
+    lower_bound = date_range[0]
+    upper_bound = date_range[1]
+    return between(column, lower_bound, upper_bound)
+
+
 class Filter(Input):
-    def __init__(self, name: str, label: str, placeholder: str = "", null: bool = True, **context):
+    def __init__(self, name: str, label: str, placeholder: str = "", null: bool = True,
+                 **context):
         """
         Parent class for all filters
         :param name: model field name
@@ -21,57 +33,45 @@ class Filter(Input):
         """
         super().__init__(name=name, label=label, placeholder=placeholder, null=null, **context)
 
-    async def apply_filter(self, request: Request, value: Any, expression: SqalchemySelect):
-        select()
+    async def apply_filter(self, request: Request, model: Any, value: Any, expression: SqalchemySelect):
         value = await self.parse_value(request, value)
-        filters = {self.context.get("name"): value}
-        return expression.filter_by(**filters)
+        return expression.where(
+            self.context["comparator"](model.__dict__[self.context["name"]], value)
+        )
 
 
 class Search(Filter):
     template = "widgets/filters/search.html"
 
     def __init__(
-        self,
-        name: str,
-        label: str,
-        search_mode: str = "equal",
-        placeholder: str = "",
-        null: bool = True,
+            self,
+            name: str,
+            label: str,
+            comparator: Callable[[Any, Any], ClauseElement] = operator.eq,
+            placeholder: str = "",
+            null: bool = True,
     ):
-        """
-        Search for keyword
-        :param name:
-        :param label:
-        :param search_mode: equal,contains,icontains,startswith,istartswith,endswith,iendswith,iexact,search
-        """
-        if search_mode == "equal":
-            super().__init__(name, label, placeholder, null)
-        else:
-            super().__init__(name + "__" + search_mode, label, placeholder)
-        self.context.update(search_mode=search_mode)
+        super().__init__(name, label, placeholder, null, comparator=comparator)
 
 
-class Datetime(Filter):
-    template = "widgets/filters/datetime.html"
-
+class Date(Filter):
     def __init__(
-        self,
-        name: str,
-        label: str,
-        format_: str = constants.DATETIME_FORMAT_MOMENT,
-        null: bool = True,
-        placeholder: str = "",
+            self,
+            name: str,
+            label: str,
+            format_: str = constants.DATE_FORMAT_MOMENT,
+            null: bool = True,
+            placeholder: str = ""
     ):
-        """
-        Datetime filter
-        :param name:
-        :param label:
-        :param format_: the format of moment.js
-        """
         super().__init__(
-            name + "__range", label, null=null, format=format_, placeholder=placeholder
+            name=name,
+            label=label,
+            format=format_,
+            null=null,
+            placeholder=placeholder,
+            comparator=between_comparator_for_date_range
         )
+        self.context.update(date=True)
 
     async def parse_value(self, request: Request, value: Optional[str]):
         if value:
@@ -85,26 +85,26 @@ class Datetime(Filter):
         return await super().render(request, value)
 
 
-class Date(Datetime):
+class DatetimeRange(Date):
+    template = "widgets/filters/datetime.html"
+
     def __init__(
-        self,
-        name: str,
-        label: str,
-        format_: str = constants.DATE_FORMAT_MOMENT,
-        null: bool = True,
-        placeholder: str = "",
+            self,
+            name: str,
+            label: str,
+            format_: str = constants.DATETIME_FORMAT_MOMENT,
+            null: bool = True,
+            placeholder: str = "",
     ):
-        super().__init__(
-            name=name, label=label, format_=format_, null=null, placeholder=placeholder
-        )
-        self.context.update(date=True)
+        super().__init__(name, label, null=null, format_=format_, placeholder=placeholder, )
+        self.context.update(date=False)
 
 
 class Select(Filter):
     template = "widgets/filters/select.html"
 
     def __init__(self, name: str, label: str, null: bool = True):
-        super().__init__(name, label, null=null)
+        super().__init__(name, label, null=null, comparator=operator.eq)
 
     @abc.abstractmethod
     async def get_options(self):
@@ -124,12 +124,12 @@ class Select(Filter):
 
 class Enum(Select):
     def __init__(
-        self,
-        enum: Type[EnumCLS],
-        name: str,
-        label: str,
-        enum_type: Type = int,
-        null: bool = True,
+            self,
+            enum: Type[EnumCLS],
+            name: str,
+            label: str,
+            enum_type: Type = int,
+            null: bool = True,
     ):
         super().__init__(name=name, label=label, null=null)
         self.enum = enum
@@ -146,7 +146,7 @@ class Enum(Select):
 
 
 class ForeignKey(Select):
-    def __init__(self, model: Type[Model], name: str, label: str, null: bool = True):
+    def __init__(self, model: Type[Any], name: str, label: str, null: bool = True):
         super().__init__(name=name, label=label, null=null)
         self.model = model
 
@@ -173,7 +173,7 @@ class ForeignKey(Select):
 
 
 class DistinctColumn(Select):
-    def __init__(self, model: Type[Model], name: str, label: str, null: bool = True):
+    def __init__(self, model: Type[Any], name: str, label: str, null: bool = True):
         super().__init__(name=name, label=label, null=null)
         self.model = model
         self.name = name
@@ -196,18 +196,17 @@ class DistinctColumn(Select):
 
 
 class Boolean(Select):
+
     async def get_options(self) -> List[Tuple[str, str]]:
         """Return list of possible values to select from."""
         options = [
-            ("TRUE", "true"),
-            ("FALSE", "false"),
+            (_("TRUE"), "true"),
+            (_("FALSE"), "false"),
         ]
         if self.context.get("null"):
             options.insert(0, ("", ""))
 
         return options
 
-    async def apply_filter(self, request: Request, value: Any, expression: SqalchemySelect):
-        """Return filtered queryset."""
-        filters = {self.context.get("name"): (value == "true")}
-        return expression.filter_by(**filters)
+    async def apply_filter(self, request: Request, model: Any, value: Any, expression: SqalchemySelect):
+        return expression.where(is_(model.__dict__[self.context["name"]], bool(value)))

@@ -6,8 +6,8 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp
 
-from fastapi_admin.services.i18n.core import I18nService
-from fastapi_admin.services.i18n.utils import get_locale_from_request
+from fastapi_admin.i18n.core import I18nService
+from fastapi_admin.i18n.utils import get_locale_from_request
 
 try:
     from babel import Locale
@@ -15,7 +15,7 @@ except ImportError:  # pragma: no cover
     Locale = None
 
 
-class I18nMiddleware(BaseHTTPMiddleware, ABC):
+class AbstractI18nMiddleware(BaseHTTPMiddleware, ABC):
     """
     Abstract I18n middleware.
     """
@@ -47,7 +47,7 @@ class I18nMiddleware(BaseHTTPMiddleware, ABC):
         pass
 
 
-class SimpleI18nMiddleware(I18nMiddleware):
+class I18nMiddleware(AbstractI18nMiddleware):
     """
     Simple I18n middleware.
     Chooses language code from the User object received in event
@@ -80,7 +80,7 @@ class SimpleI18nMiddleware(I18nMiddleware):
         return cast(str, parsed_locale.language)
 
 
-class ConstI18nMiddleware(I18nMiddleware):
+class ConstI18nMiddleware(AbstractI18nMiddleware):
     """
     Const middleware chooses statically defined locale
     """

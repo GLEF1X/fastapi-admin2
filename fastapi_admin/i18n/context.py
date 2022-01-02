@@ -1,7 +1,7 @@
 from typing import Any
 
-from fastapi_admin.services.i18n.core import I18nService
-from fastapi_admin.services.i18n.lazy_proxy import LazyProxy
+from fastapi_admin.i18n.core import I18nService
+from fastapi_admin.i18n.lazy_proxy import LazyProxy
 
 
 def get_i18n() -> I18nService:

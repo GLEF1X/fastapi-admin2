@@ -19,6 +19,8 @@ tortoise-orm = "*"
 uvicorn = { version = "*", extras = ["standard"] }
 pendulum = "*"
 argon2-cffi = "^21.3.0"
+coverage = "^6.2"
+orjson = "^3.6.5"
 
 
 [tool.poetry.dev-dependencies]

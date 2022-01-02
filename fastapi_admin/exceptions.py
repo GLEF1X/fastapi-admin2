@@ -18,7 +18,7 @@ class InvalidResource(ServerHTTPException):
     """
 
 
-class NoSuchFieldFound(ServerHTTPException):
+class FieldNotFoundError(ServerHTTPException):
     """
     raise when no such field for the given
     """

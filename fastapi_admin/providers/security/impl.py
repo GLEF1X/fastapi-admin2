@@ -11,15 +11,15 @@ from starlette.responses import RedirectResponse
 from starlette.status import HTTP_303_SEE_OTHER, HTTP_401_UNAUTHORIZED
 
 from fastapi_admin import constants
-from fastapi_admin.database.models.abstract import Admin
+from fastapi_admin.database.models.abstract_admin import AbstractAdmin
 from fastapi_admin.database.repository.admin import UserRepositoryProto, AdministratorNotFound
 from fastapi_admin.depends import get_current_admin, get_resources
 from fastapi_admin.providers import Provider
 from fastapi_admin.providers.security.dependencies import UserRepositoryDependencyMarker, \
     RedisClientDependencyMarker
 from fastapi_admin.providers.security.dto import InitAdmin
-from fastapi_admin.services.file_upload import FileUploader
-from fastapi_admin.services.i18n.context import lazy_gettext as _
+from fastapi_admin.file_upload import FileUploader
+from fastapi_admin.i18n import lazy_gettext as _
 from fastapi_admin.template import templates
 from fastapi_admin.utils.depends import get_dependency_from_request_by_marker
 
@@ -173,7 +173,7 @@ class SecurityProvider(Provider):
 
         path_to_avatar_image = await self._avatar_uploader.upload(init_admin.avatar)
 
-        await user_repository.add_user(
+        await user_repository.add_admin(
             username=init_admin.username,
             password=self._password_hasher.hash(init_admin.password),
             avatar=path_to_avatar_image
@@ -205,7 +205,7 @@ class SecurityProvider(Provider):
             old_password: str = Form(...),
             new_password: str = Form(...),
             re_new_password: str = Form(...),
-            admin: Admin = Depends(get_current_admin),
+            admin: AbstractAdmin = Depends(get_current_admin),
             resources: List[dict] = Depends(get_resources),
             user_repository: UserRepositoryProto = Depends(UserRepositoryDependencyMarker)
     ):
@@ -228,7 +228,7 @@ class SecurityProvider(Provider):
     async def _password_hash_is_invalid(
             self,
             user_repository: UserRepositoryProto,
-            admin: Admin,
+            admin: AbstractAdmin,
             password: str
     ) -> bool:
         try:

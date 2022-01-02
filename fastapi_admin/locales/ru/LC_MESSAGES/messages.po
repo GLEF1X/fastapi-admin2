@@ -88,6 +88,9 @@ msgid "username_placeholder"
 msgstr "Введите никнейм"
 
 #: fastapi_admin/templates/init.html:18
+msgid "password"
+msgstr "Пароль"
+
 #: fastapi_admin/templates/providers/login/login.html:54
 msgid "renew_password"
 msgstr "Пароль"
@@ -200,4 +203,12 @@ msgstr "Подтвердить новый пароль"
 #: fastapi_admin/templates/providers/login/password.html:29
 msgid "re_new_password_placeholder"
 msgstr "Введите новый пароль снова"
+
+
+#: Filters
+msgid "TRUE"
+msgstr "Да"
+
+msgid "FALSE"
+msgstr "Нет"
 

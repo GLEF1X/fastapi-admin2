@@ -1,6 +1,6 @@
 import json
 from datetime import datetime
-from typing import Optional, Any
+from typing import Optional, Any, Callable
 
 from starlette.requests import Request
 
@@ -50,10 +50,13 @@ class Image(Display):
 class Json(Display):
     template = "widgets/displays/json.html"
 
+    def __init__(self, dumper: Callable[..., Any] = json.dumps, **context):
+        super().__init__(**context)
+        self._dumper = dumper
+
     async def render(self, request: Request, value: dict):
-        return await super(Json, self).render(request, json.dumps(value))
+        return await super(Json, self).render(request, self._dumper(value))
 
 
 class EnumDisplay(Display):
     template = ""
-

@@ -1,10 +1,12 @@
 from fastapi import Depends, HTTPException, APIRouter
-from fastapi_admin.depends import get_resources
-from fastapi_admin.template import templates
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
 from starlette.status import HTTP_303_SEE_OTHER, HTTP_404_NOT_FOUND
 
+from fastapi_admin.depends import get_resources
+from fastapi_admin.general_dependencies import AsyncSessionDependencyMarker
+from fastapi_admin.template import templates
 from src.infrastructure.impl.orm.models import Config
 
 admin_panel_main_router = APIRouter(tags=["админка"])
@@ -28,10 +30,12 @@ async def home(
 
 
 @admin_panel_main_router.put("/config/switch_status/{config_id}")
-async def switch_config_status(request: Request, config_id: int):
-    config = await Config.get_or_none(pk=config_id)
-    if not config:
-        raise HTTPException(status_code=HTTP_404_NOT_FOUND)
-    config.status = not config.status
-    await config.save(update_fields=["status"])
+async def switch_config_status(request: Request, config_id: int,
+                               session: AsyncSession = Depends(AsyncSessionDependencyMarker)):
+    async with session.begin():
+        config = await session.get(Config, config_id)
+        if not config:
+            raise HTTPException(status_code=HTTP_404_NOT_FOUND)
+        config.status = config.status.switch_status()
+        await session.merge(config)
     return RedirectResponse(url=request.headers.get("referer"), status_code=HTTP_303_SEE_OTHER)

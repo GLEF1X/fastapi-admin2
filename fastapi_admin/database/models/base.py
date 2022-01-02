@@ -10,12 +10,13 @@ mapper_registry = registry()
 
 # Split a string by Uppercase as long as the each word is not all caps already
 TABLE_NAME_REGEX: Pattern[str] = re.compile(r"(?<=[A-Z])(?=[A-Z][a-z])|(?<=[^A-Z])(?=[A-Z])")
-PLURAL = "s"
+
+
+def _make_plural(n: str) -> str:
+    return f"{n}s"
 
 
 class OrmModelBase(metaclass=DeclarativeMeta):
-    """Declarative meta for mypy"""
-
     __abstract__ = True
     __mapper_args__ = {"eager_defaults": True}
 
@@ -44,7 +45,7 @@ class OrmModelBase(metaclass=DeclarativeMeta):
             table_name_part.lower() + "_" for i, table_name_part in enumerate(table_name_parts)
         )
         last_underscore = formatted_table_name.rfind("_")
-        return formatted_table_name[:last_underscore] + PLURAL
+        return _make_plural(formatted_table_name[:last_underscore])
 
     def _get_attributes(self) -> Dict[Any, Any]:
         return {k: v for k, v in self.__dict__.items() if not k.startswith("_")}

@@ -4,8 +4,8 @@ import pytest
 from fastapi import FastAPI
 from starlette.requests import Request
 
-from fastapi_admin.services.i18n import I18nService, SimpleI18nMiddleware
-from fastapi_admin.services.i18n import get_i18n, lazy_gettext, gettext
+from fastapi_admin.i18n import I18nService, I18nMiddleware
+from fastapi_admin.i18n import get_i18n, lazy_gettext, gettext
 from fastapi_admin.tests.conftest import DATA_DIR
 
 
@@ -103,7 +103,7 @@ class TestSimpleI18nMiddleware:
         ],
     )
     async def test_middleware(self, i18n: I18nService, req: Request, expected_result: str):
-        middleware = SimpleI18nMiddleware(app=FastAPI(), i18n=i18n)
+        middleware = I18nMiddleware(app=FastAPI(), i18n=i18n)
         result = await middleware.dispatch(
             req,
             next_call
