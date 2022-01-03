@@ -2,26 +2,25 @@ import uuid
 from typing import TYPE_CHECKING, List
 
 from aioredis import Redis
-from argon2 import PasswordHasher
-from argon2.exceptions import InvalidHash, VerifyMismatchError
-from fastapi import Depends, Form
+from fastapi import Depends
 from starlette.middleware.base import RequestResponseEndpoint
 from starlette.requests import Request
-from starlette.responses import RedirectResponse
+from starlette.responses import RedirectResponse, Response
 from starlette.status import HTTP_303_SEE_OTHER, HTTP_401_UNAUTHORIZED
 
 from fastapi_admin import constants
 from fastapi_admin.database.models.abstract_admin import AbstractAdmin
-from fastapi_admin.database.repository.admin import UserRepositoryProto, AdministratorNotFound
+from fastapi_admin.database.repository.admin import AdminRepositoryProto, AdministratorNotFound
 from fastapi_admin.depends import get_current_admin, get_resources
-from fastapi_admin.providers import Provider
-from fastapi_admin.providers.security.dependencies import UserRepositoryDependencyMarker, \
-    RedisClientDependencyMarker
-from fastapi_admin.providers.security.dto import InitAdmin
-from fastapi_admin.file_upload import FileUploader
 from fastapi_admin.i18n import lazy_gettext as _
+from fastapi_admin.providers import Provider
+from fastapi_admin.providers.security.dependencies import AdminRepositoryDependencyMarker
+from fastapi_admin.providers.security.dto import InitAdmin, RenewPasswordForm
+from fastapi_admin.providers.security.password_hasher import PasswordHasherProto, Argon2PasswordHasher, \
+    HashingFailedError
 from fastapi_admin.template import templates
 from fastapi_admin.utils.depends import get_dependency_from_request_by_marker
+from fastapi_admin.utils.file_upload import FileUploader
 
 if TYPE_CHECKING:
     from fastapi_admin.app import FastAPIAdmin
@@ -35,6 +34,8 @@ class SecurityProvider(Provider):
     def __init__(
             self,
             avatar_uploader: FileUploader,
+            redis: Redis,
+            password_hasher: PasswordHasherProto = Argon2PasswordHasher(),
             login_path: str = "/login",
             logout_path: str = "/logout",
             template: str = "providers/login/login.html",
@@ -46,8 +47,9 @@ class SecurityProvider(Provider):
         self.template = template
         self.login_title_translation_key = login_title_translation_key
         self.login_logo_url = login_logo_url
-        self._password_hasher = PasswordHasher()
+        self._password_hasher = password_hasher
         self._avatar_uploader = avatar_uploader
+        self._redis_client = redis
 
     async def login_view(self, request: Request):
         return templates.TemplateResponse(
@@ -74,9 +76,8 @@ class SecurityProvider(Provider):
     async def login(
             self,
             request: Request,
-            user_repository: UserRepositoryProto = Depends(UserRepositoryDependencyMarker),
-            redis: Redis = Depends(RedisClientDependencyMarker)
-    ):
+            user_repository: AdminRepositoryProto = Depends(AdminRepositoryDependencyMarker)
+    ) -> Response:
         form = await request.form()
         username = form.get("username")
         password = form.get("password")
@@ -109,30 +110,29 @@ class SecurityProvider(Provider):
             path=request.app.admin_path,
             httponly=True,
         )
-        await redis.set(constants.LOGIN_USER.format(token=token), admin.id, ex=expire)
+        await self._redis_client.set(constants.LOGIN_USER.format(token=token), admin.id, ex=expire)
         return response
 
-    async def logout(self, request: Request):
+    async def logout(self, request: Request) -> Response:
         response = self.redirect_login(request)
         response.delete_cookie(self.access_token_key, path=request.app.admin_path)
         token = request.cookies.get(self.access_token_key)
-        await request.app.redis.delete(constants.LOGIN_USER.format(token=token))
+        await self._redis_client.delete(constants.LOGIN_USER.format(token=token))
         return response
 
     async def authenticate(
             self,
             request: Request,
             call_next: RequestResponseEndpoint
-    ):
-        user_repository = get_dependency_from_request_by_marker(request, UserRepositoryDependencyMarker)
-        redis = get_dependency_from_request_by_marker(request, RedisClientDependencyMarker)
+    ) -> Response:
+        user_repository = get_dependency_from_request_by_marker(request, AdminRepositoryDependencyMarker)
 
         token = request.cookies.get(self.access_token_key)
         path = request.scope["path"]
         admin = None
         if token:
             token_key = constants.LOGIN_USER.format(token=token)
-            admin_id = int(await redis.get(token_key))
+            admin_id = int(await self._redis_client.get(token_key))
             try:
                 admin = await user_repository.get_one_admin_by_filters(id=admin_id)
             except AdministratorNotFound:
@@ -148,8 +148,8 @@ class SecurityProvider(Provider):
     async def init_view(
             self,
             request: Request,
-            user_repository: UserRepositoryProto = Depends(UserRepositoryDependencyMarker)
-    ):
+            user_repository: AdminRepositoryProto = Depends(AdminRepositoryDependencyMarker)
+    ) -> Response:
         if await user_repository.is_exists_at_least_one_admin():
             return self.redirect_login(request)
         return templates.TemplateResponse("init.html", context={"request": request})
@@ -158,8 +158,8 @@ class SecurityProvider(Provider):
             self,
             request: Request,
             init_admin: InitAdmin = Depends(InitAdmin),
-            user_repository: UserRepositoryProto = Depends(
-                UserRepositoryDependencyMarker
+            user_repository: AdminRepositoryProto = Depends(
+                AdminRepositoryDependencyMarker
             )
     ):
         if await user_repository.is_exists_at_least_one_admin():
@@ -181,7 +181,7 @@ class SecurityProvider(Provider):
 
         return self.redirect_login(request)
 
-    def redirect_login(self, request: Request):
+    def redirect_login(self, request: Request) -> Response:
         return RedirectResponse(
             url=request.app.admin_path + self.login_path, status_code=HTTP_303_SEE_OTHER
         )
@@ -190,7 +190,7 @@ class SecurityProvider(Provider):
             self,
             request: Request,
             resources=Depends(get_resources),
-    ):
+    ) -> Response:
         return templates.TemplateResponse(
             "providers/login/renew_password.html",
             context={
@@ -202,18 +202,16 @@ class SecurityProvider(Provider):
     async def renew_password(
             self,
             request: Request,
-            old_password: str = Form(...),
-            new_password: str = Form(...),
-            re_new_password: str = Form(...),
+            renew_password_form: RenewPasswordForm,
             admin: AbstractAdmin = Depends(get_current_admin),
             resources: List[dict] = Depends(get_resources),
-            user_repository: UserRepositoryProto = Depends(UserRepositoryDependencyMarker)
-    ):
+            user_repository: AdminRepositoryProto = Depends(AdminRepositoryDependencyMarker)
+    ) -> Response:
         error = None
-        if self._password_hash_is_invalid(user_repository, admin, old_password):
+        if self._password_hash_is_invalid(user_repository, admin, renew_password_form.old_password):
             error = _("old_password_error")
 
-        if new_password != re_new_password:
+        if renew_password_form.new_password != renew_password_form.re_new_password:
             error = _("new_password_different")
 
         if error:
@@ -222,23 +220,21 @@ class SecurityProvider(Provider):
                 context={"request": request, "resources": resources, "error": error},
             )
 
-        await user_repository.update_admin({"id": admin.id}, password=new_password)
+        await user_repository.update_admin({"id": admin.id}, password=renew_password_form.new_password)
         return await self.logout(request)
 
     async def _password_hash_is_invalid(
             self,
-            user_repository: UserRepositoryProto,
+            user_repository: AdminRepositoryProto,
             admin: AbstractAdmin,
             password: str
     ) -> bool:
         try:
             self._password_hasher.verify(admin.password, password)
-        except (InvalidHash, VerifyMismatchError):
-            return True
-        except AttributeError:  # if something wrong with password format
+        except HashingFailedError:
             return True
 
-        if self._password_hasher.check_needs_rehash(admin.password):
+        if self._password_hasher.is_rehashing_required(admin.password):
             await user_repository.update_admin({}, password=self._password_hasher.hash(admin.password))
 
         return False

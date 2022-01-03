@@ -10,7 +10,7 @@ from fastapi_admin.i18n._context_mixin import ContextInstanceMixin
 from fastapi_admin.template import templates
 
 
-class I18nService(ContextInstanceMixin["I18n"]):
+class I18nService(ContextInstanceMixin["I18nService"]):
     def __init__(
             self,
             *,

@@ -13,7 +13,7 @@ class AdministratorNotFound(DatabaseError):
         self.origin_exception = origin_exception
 
 
-class UserRepositoryProto(Protocol):
+class AdminRepositoryProto(Protocol):
 
     async def get_one_admin_by_filters(self, **filters: Any) -> AbstractAdmin: ...
 

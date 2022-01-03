@@ -11,8 +11,8 @@ from starlette.staticfiles import StaticFiles
 import resources
 from events import create_on_startup_handler, create_on_shutdown_handler
 from fastapi_admin.app import setup_admin_application
-from fastapi_admin.file_upload import DiskFileUploader
 from fastapi_admin.i18n import I18nMiddleware
+from fastapi_admin.utils.file_upload import OnPremiseFileUploader, StaticFileUploader
 from providers import SecurityProvider
 from src.admin_panel.routes.admin.home import admin_panel_main_router
 from src.admin_panel.settings import BASE_DIR
@@ -65,7 +65,7 @@ class ApplicationBuilder:
             autoflush=False,
             class_=AsyncSession
         )
-        app = setup_admin_application(engine, session_pool, redis, admin_model_cls=Admin)
+        app = setup_admin_application(engine, session_pool, admin_model_cls=Admin)
         self._main_app.state.engine = engine
 
         resources.register(app)
@@ -76,7 +76,11 @@ class ApplicationBuilder:
             providers=[
                 SecurityProvider(
                     login_logo_url="https://preview.tabler.io/static/logo.svg",
-                    avatar_uploader=DiskFileUploader(uploads_dir=BASE_DIR / "static" / "uploads")
+                    avatar_uploader=StaticFileUploader(
+                        OnPremiseFileUploader(uploads_dir=BASE_DIR / "static" / "uploads"),
+                        static_path_prefix="/static/uploads"
+                    ),
+                    redis=redis
                 )
             ],
             i18n_middleware=I18nMiddleware

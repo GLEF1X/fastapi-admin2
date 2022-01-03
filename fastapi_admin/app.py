@@ -2,7 +2,6 @@ from typing import Dict, List, Optional, Type, Any
 
 from aioredis import Redis
 from fastapi import FastAPI
-from pydantic import HttpUrl
 from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine
 from sqlalchemy.orm import sessionmaker
 from starlette.status import HTTP_403_FORBIDDEN, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND, \
@@ -17,7 +16,7 @@ from .database.repository.admin import AdminRepository
 from .exceptions import not_found_error_exception, server_error_exception, forbidden_error_exception, \
     unauthorized_error_exception
 from .general_dependencies import AsyncSessionDependencyMarker, SessionMakerDependencyMarker
-from .providers.security.dependencies import UserRepositoryDependencyMarker, RedisClientDependencyMarker
+from .providers.security.dependencies import AdminRepositoryDependencyMarker
 from .resources import Dropdown
 from .resources import Model as ModelResource
 from .resources.base import Resource
@@ -32,7 +31,7 @@ class FastAPIAdmin(FastAPI):
     model_resources: Dict[Type[Any], Type[Resource]] = {}
     redis: Redis
     language_switch: bool = True
-    favicon_url: Optional[HttpUrl] = None
+    favicon_url: Optional[str] = None
 
     def configure(
             self,
@@ -40,7 +39,7 @@ class FastAPIAdmin(FastAPI):
             admin_path: str = "/admin",
             template_folders: Optional[List[str]] = None,
             providers: Optional[List[Provider]] = None,
-            favicon_url: Optional[HttpUrl] = None,
+            favicon_url: Optional[str] = None,
             i18n_middleware: Type[AbstractI18nMiddleware] = _I18nMiddlewareStub
     ):
         self.admin_path = admin_path
@@ -74,7 +73,7 @@ class FastAPIAdmin(FastAPI):
             for r in resource.resources:
                 self._set_model_resource(r)
 
-    def get_model_resource(self, model: Type[Any]):
+    def get_model_resource(self, model: Type[Any]) -> Optional[Resource]:
         r = self.model_resources.get(model)
         return r() if r else None
 
@@ -82,16 +81,16 @@ class FastAPIAdmin(FastAPI):
 def setup_admin_application(
         engine: AsyncEngine,
         session_maker: sessionmaker,
-        redis: Redis,
         add_custom_exception_handlers: bool = True,
-        admin_model_cls: Type[AbstractAdmin] = AbstractAdmin
+        admin_model_cls: Type[AbstractAdmin] = AbstractAdmin,
+        **fastapi_app_kw: Any
 ) -> FastAPIAdmin:
-    app = FastAPIAdmin()
+    app = FastAPIAdmin(**fastapi_app_kw)
 
-    app.dependency_overrides[UserRepositoryDependencyMarker] = lambda: AdminRepository(
+    # It's not neccessary in all cases, but for some kind of authorization it can be useful
+    app.dependency_overrides[AdminRepositoryDependencyMarker] = lambda: AdminRepository(
         session_maker(), admin_model_cls
     )
-    app.dependency_overrides[RedisClientDependencyMarker] = lambda: redis
 
     async def spin_up_session():
         session: AsyncSession = session_maker()

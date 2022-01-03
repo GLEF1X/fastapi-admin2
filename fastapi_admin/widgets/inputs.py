@@ -9,7 +9,7 @@ from starlette.datastructures import UploadFile
 from starlette.requests import Request
 
 from fastapi_admin import constants
-from fastapi_admin.file_upload import FileUploader
+from fastapi_admin.utils.file_upload import FileUploader
 from fastapi_admin.general_dependencies import SessionMakerDependencyMarker
 from fastapi_admin.utils.depends import get_dependency_from_request_by_marker
 from fastapi_admin.utils.sqlalchemy import get_primary_key, get_related_querier_from_model_by_foreign_key
@@ -34,7 +34,7 @@ class Input(Widget):
         """
         return value
 
-    async def render(self, request: Request, value: Any):
+    async def render(self, request: Request, value: Any) -> str:
         if value is None:
             value = self.default
         return await super(Input, self).render(request, value)
@@ -191,6 +191,7 @@ class Json(Input):
     ):
         """
         options config to jsoneditor, see https://github.com/josdejong/jsoneditor
+
         :param options:
         """
         super().__init__(null=null, help_text=help_text)
@@ -201,7 +202,7 @@ class Json(Input):
 
     async def render(self, request: Request, value: Any):
         if value:
-            value = self._dumper.dumps(value)
+            value = self._dumper(value)
         return await super().render(request, value)
 
 

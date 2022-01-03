@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Generic
 
 from starlette.requests import Request
 from starlette.templating import Jinja2Templates
@@ -14,11 +14,12 @@ class Widget:
     def __init__(self, **context):
         """
         All context will pass to template render if template is not empty.
+
         :param context:
         """
         self.context = context
 
-    async def render(self, request: Request, value: Any):
+    async def render(self, request: Request, value: Any) -> str:
         if value is None:
             value = ""
         if not self.template:

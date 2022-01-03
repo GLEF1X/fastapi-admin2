@@ -1,8 +1,7 @@
-from typing import Type, Any, List, Union, Optional
+from typing import Type, Any, List, Union, Optional, Sequence, Iterable
 
 from sqlalchemy import inspect, Column, Boolean, DateTime, Date, Enum, JSON, String, Integer
 from sqlalchemy.sql import Select
-from sqlalchemy.util import ImmutableProperties
 from starlette.datastructures import FormData
 from starlette.requests import Request
 
@@ -75,7 +74,7 @@ class Model(Resource):
     @classmethod
     async def render_inputs(cls, request: Request, obj: Optional[Any] = None) -> List[str]:
         rendered_inputs = []
-        for field in cls.get_model_fields(is_display=False):
+        for field in cls.get_model_fields_for_input():
             input_ = field.input
             if isinstance(input_, inputs.DisplayOnly):
                 continue
@@ -86,13 +85,10 @@ class Model(Resource):
         return rendered_inputs
 
     @classmethod
-    async def enrich_select_with_filters(cls, request: Request, model: Any, query_params: dict,
-                                         select_statement: Select):
+    async def parse_query_params(cls, request: Request) -> dict:
         params = {}
-        for filter_ in cls.filters:
-            filter_is_column_name = isinstance(filter_, str)
-            if filter_is_column_name:
-                filter_ = Search(name=filter_, label=filter_.title())
+        query_params = request.query_params
+        for filter_ in cls._normalize_filters():
             name = filter_.context.get("name")
             try:
                 matched_filter_value = query_params[name]
@@ -100,11 +96,29 @@ class Model(Resource):
                     raise KeyError
             except KeyError:
                 continue
-
             params[name] = await filter_.parse_value(request, matched_filter_value)
-            select_statement = await filter_.apply_filter(request, model, matched_filter_value,
+        return params
+
+    @classmethod
+    async def enrich_select_with_filters(cls, request: Request, model: Any,
+                                         select_statement: Select) -> Select:
+        parsed_query_params = await cls.parse_query_params(request)
+        for filter_ in cls._normalize_filters():
+            filter_name = filter_.context["name"]
+            if not parsed_query_params.get(filter_name):
+                continue
+            select_statement = await filter_.apply_filter(request, model, parsed_query_params[filter_name],
                                                           select_statement)
-        return params, select_statement
+        return select_statement
+
+    @classmethod
+    def _normalize_filters(cls) -> List[Filter]:
+        normalized_filters: List[Filter] = []
+        for filter_ in cls.filters:
+            if isinstance(filter_, str):
+                filter_ = Search(name=filter_, label=filter_.title())
+            normalized_filters.append(filter_)
+        return normalized_filters
 
     @classmethod
     async def render_filters(cls, request: Request, values: Optional[dict] = None) -> List[str]:
@@ -124,7 +138,7 @@ class Model(Resource):
     async def resolve_data(cls, request: Request, data: FormData):
         ret = {}
         m2m_ret = {}
-        for field in cls.get_model_fields(is_display=False):
+        for field in cls.get_model_fields_for_input():
             input_ = field.input
             if input_.context.get("disabled") or isinstance(input_, inputs.DisplayOnly):
                 continue
@@ -146,34 +160,71 @@ class Model(Resource):
         return cls._get_fields_attr("name", display)
 
     @classmethod
-    def get_model_fields(cls, is_display: bool = True) -> List[Field]:
-        model_columns: ImmutableProperties = inspect(cls.model).columns  # type: ignore  # noqa
-        pk_column: Column = inspect(cls.model).primary_key[0]
-        field_iterator = cls.fields or model_columns
-        fields: List[Field] = [cls._create_field_by_field_name(pk_column.name)]
+    def get_model_fields_for_input(cls) -> List[Field]:
+        display_fields = cls.get_model_fields_for_display()
+        return [
+            field for field in display_fields
+            if not isinstance(field, ComputeField) and not isinstance(field.display, inputs.DisplayOnly)
+        ]
+
+    @classmethod
+    def get_model_fields_for_display(cls) -> List[Field]:
+        sqlalchemy_model_columns: Sequence[Column] = inspect(cls.model).columns.items()
+        field_iterator = cls._create_field_iterator(sqlalchemy_model_columns)
+
+        fields: List[Field] = []
+
         for field in field_iterator:
             if isinstance(field, str):
-                if field == pk_column.name:
-                    continue
                 field = cls._create_field_by_field_name(field)
-            elif isinstance(field, ComputeField) and not is_display:
+            if isinstance(field.display, displays.InputOnly):
                 continue
-            elif isinstance(field, Field):
-                if field.name == pk_column.name:
-                    continue
-                if (is_display and isinstance(field.display, displays.InputOnly)) or (
-                        not is_display and isinstance(field.input, inputs.DisplayOnly)
-                ):
-                    continue
-            elif isinstance(field, Column):
-                if field.name == pk_column.name:
-                    continue
-                field = cls._create_field_by_field_name(field.name)
             fields.append(field)
+
+        return cls._shift_primary_keys_to_beginning(fields)
+
+    @classmethod
+    def _shift_primary_keys_to_beginning(cls, fields: List[Field]):
+        pk_columns: Sequence[Column] = inspect(cls.model).primary_key
+        pk_columns_names = [c.name for c in pk_columns]
+        for index, field in enumerate(fields):
+            if field.name not in pk_columns_names:
+                continue
+            primary_key_not_at_the_beginning = index != 0
+            if primary_key_not_at_the_beginning:
+                fields.remove(field)
+                fields.insert(0, field)
         return fields
 
     @classmethod
+    def _create_field_iterator(
+            cls,
+            sqlalchemy_model_columns: Sequence[Column] = ()
+    ) -> Iterable[Union[str, Field, ComputeField]]:
+        field_iterator = cls.fields
+        if not field_iterator:
+            field_iterator = [
+                cls._create_field_by_field_name(column.name)
+                for column in sqlalchemy_model_columns
+            ]
+        return field_iterator
+
+    @classmethod
     def _create_field_by_field_name(cls, field_name: str) -> Field:
+        """
+        Create field if you have passed on string to fields
+        and rely only on built-in recognition of field type
+
+        for instance:
+        >>> class MyModelResource(Model):
+        >>>     model = SomeModel
+        >>>     fields = ["id", "json_column", "some_column"]
+
+        In this case, fields would be transformed to appropriate field inputs and displays automaticly
+
+        :param field_name:
+        :return:
+        """
         column: Optional[Column] = cls.model.__dict__.get(field_name)
         if not column:
             raise FieldNotFoundError(f"Can't found field '{field_name}' in model {cls.model}")
@@ -220,7 +271,7 @@ class Model(Resource):
     @classmethod
     def _get_fields_attr(cls, attr: str, display: bool = True) -> List[Any]:
         some_field_attribute_values = []
-        for field in cls.get_model_fields():
+        for field in cls.get_model_fields_for_display():
             if display and isinstance(field.display, displays.InputOnly):
                 continue
             some_field_attribute_values.append(getattr(field, attr))

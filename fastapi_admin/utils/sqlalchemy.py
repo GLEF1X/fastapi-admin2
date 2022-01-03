@@ -6,6 +6,7 @@ from sqlalchemy.orm import RelationshipProperty
 from sqlalchemy.sql import Select, Insert
 from sqlalchemy.sql.dml import UpdateBase
 from sqlalchemy.sql.elements import BooleanClauseList
+from sqlalchemy.orm import class_mapper
 
 
 @no_type_check

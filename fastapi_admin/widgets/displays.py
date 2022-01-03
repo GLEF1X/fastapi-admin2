@@ -19,7 +19,7 @@ class DatetimeDisplay(Display):
         super().__init__()
         self.format_ = format_
 
-    async def render(self, request: Request, value: datetime):
+    async def render(self, request: Request, value: datetime) -> str:
         return await super(DatetimeDisplay, self).render(
             request, value.strftime(self.format_) if value else None
         )

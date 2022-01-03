@@ -8,15 +8,13 @@ from starlette.requests import Request
 from fastapi_admin.app import FastAPIAdmin
 from fastapi_admin.constants import DATETIME_FORMAT
 from fastapi_admin.enums import HTTPMethod
-from fastapi_admin.file_upload import DiskFileUploader
 from fastapi_admin.resources import Action, Dropdown, Field, Link, Model, ToolbarAction
+from fastapi_admin.utils.file_upload import OnPremiseFileUploader, StaticFileUploader
 from fastapi_admin.widgets import displays, filters, inputs
 from src.admin_panel.settings import BASE_DIR
 from src.entities import enums
 from src.entities.enums import ProductType
 from src.infrastructure.impl.orm.models import Product, Config, Category, Admin
-
-upload = DiskFileUploader(uploads_dir=BASE_DIR / "static" / "uploads")
 
 
 def register(app: FastAPIAdmin):
@@ -62,9 +60,17 @@ class AdminResource(Model):
             name="avatar",
             label="Аватарка",
             display=displays.Image(width="40"),
-            input_=inputs.Image(null=True, upload=upload),
+            input_=inputs.Image(null=True, upload=StaticFileUploader(
+                OnPremiseFileUploader(uploads_dir=BASE_DIR / "static" / "uploads"),
+                static_path_prefix="/static/uploads"
+            )),
         ),
-        "created_at",
+        Field(
+            "created_at",
+            label="Дата создания",
+            input_=inputs.DateTime(),
+            display=displays.DatetimeDisplay()
+        ),
     ]
 
     async def get_toolbar_actions(self, request: Request) -> List[ToolbarAction]:
@@ -94,7 +100,8 @@ class Content(Dropdown):
         filters = [
             filters.Enum(enum=enums.ProductType, name="type", label="Тип продукта"),
             filters.DatetimeRange(name="created_at", label="Дата создания"),
-            filters.Boolean(name="is_reviewed", label="Готов к продаже")
+            filters.Boolean(name="is_reviewed", label="Готов к продаже"),
+            filters.ForeignKey(to_column=Product.category_id, name="category", label="Категория")
         ]
 
         fields = [

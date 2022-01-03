@@ -4,13 +4,17 @@ from enum import Enum as EnumCLS
 from typing import Any, List, Optional, Tuple, Type, Callable
 
 import pendulum
-from sqlalchemy import between, Column
+from sqlalchemy import between, Column, select
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql import Select as SqalchemySelect, ClauseElement
 from sqlalchemy.sql.operators import is_
 from starlette.requests import Request
 
 from fastapi_admin import constants
+from fastapi_admin.general_dependencies import SessionMakerDependencyMarker
 from fastapi_admin.i18n.context import lazy_gettext as _
+from fastapi_admin.utils.depends import get_dependency_from_request_by_marker
+from fastapi_admin.utils.sqlalchemy import get_related_querier_from_model_by_foreign_key, get_primary_key
 from fastapi_admin.widgets.inputs import Input
 
 
@@ -145,30 +149,24 @@ class Enum(Select):
         return options
 
 
-class ForeignKey(Select):
-    def __init__(self, model: Type[Any], name: str, label: str, null: bool = True):
-        super().__init__(name=name, label=label, null=null)
-        self.model = model
+class ForeignKey(Filter):
+    template = "widgets/filters/select.html"
 
-    async def get_options(self):
-        ret = await self.get_models()
-        options = [
-            (
-                str(x),
-                x.pk,
-            )
-            for x in ret
-        ]
-        if self.context.get("null"):
-            options = [("", "")] + options
-        return options
-
-    async def get_models(self):
-        return await self.model.all()
+    def __init__(self, to_column: Any, name: str, label: str, null: bool = True):
+        super().__init__(name=name, label=label, null=null, comparator=operator.eq)
+        self.querier = get_related_querier_from_model_by_foreign_key(to_column)
+        self._pk = get_primary_key(self.querier)
 
     async def render(self, request: Request, value: Any):
         if value is not None:
             value = int(value)
+        session_pool = get_dependency_from_request_by_marker(request, SessionMakerDependencyMarker)
+        async with session_pool.begin() as session:  # type: AsyncSession
+            results = (await session.execute(select(self.querier))).scalars().all()
+        options = [(str(model), getattr(model, self._pk)) for model in results]
+        if self.context.get("null"):
+            options = [("", "")] + options
+        self.context.update(options=options)
         return await super().render(request, value)
 
 

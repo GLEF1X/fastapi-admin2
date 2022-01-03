@@ -1,9 +1,11 @@
 import asyncio
 import dataclasses
-from typing import List, Type, Any, Iterable, Dict
+from typing import List, Type, Any, Iterable, Dict, Tuple
 
 from fastapi import Depends, HTTPException
 from fastapi.params import Path
+from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 from starlette.status import HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND
 
@@ -95,7 +97,7 @@ class ModelResourceListPresenter:
     async def _generate_css_attributes_for_columns(self) -> Iterable[Dict[Any, Any]]:
         return await asyncio.gather(*[
             self._model_resource.column_attributes(self._request, field)
-            for field in self._model_resource.get_model_fields()
+            for field in self._model_resource.get_model_fields_for_display()
         ])
 
     async def _generate_css_attributes_for_rows(self, values: List[Any]) -> Iterable[Dict[Any, Any]]:
@@ -108,7 +110,7 @@ class ModelResourceListPresenter:
         result = []
         for orm_model_instance in values:
             cell_attributes = []
-            for field in self._model_resource.get_model_fields():
+            for field in self._model_resource.get_model_fields_for_display():
                 cell_attributes.append(
                     await self._model_resource.cell_attributes(
                         self._request, orm_model_instance, field
@@ -121,7 +123,7 @@ class ModelResourceListPresenter:
         result = []
         for orm_model_instance in values:
             row = []
-            for field in self._model_resource.get_model_fields():
+            for field in self._model_resource.get_model_fields_for_display():
                 if isinstance(field, ComputeField):
                     field_value = await field.get_value(self._request, orm_model_instance)
                 else:
@@ -133,3 +135,52 @@ class ModelResourceListPresenter:
                     row.append(await field.input.render(self._request, field_value))
             result.append(row)
         return result
+
+
+@dataclasses.dataclass
+class ModelData:
+    orm_models: List[Any] = dataclasses.field(default_factory=list)
+    total_entries_count: int = 0
+
+
+class ModelListQuerier:
+
+    def __init__(
+            self,
+            request: Request,
+            model_resource: Model = Depends(get_model_resource),
+            page_size: int = 10,
+            model=Depends(get_model), page_num: int = 1
+    ):
+        self._model_resource = model_resource
+        self.page_size = page_size
+        self._model = model
+        self._request = request
+        self.page_num = page_num
+
+    async def get_model_data(self, session: AsyncSession) -> ModelData:
+        select_stmt = select(
+            self._model, func.count("*").over().label("entry_count")
+        ).select_from(self._model)
+        select_stmt = await self._model_resource.enrich_select_with_filters(
+            request=self._request,
+            model=self._model,
+            select_statement=select_stmt
+        )
+
+        page_size = self.page_size
+        if self.page_size:
+            select_stmt = select_stmt.limit(self.page_size)
+        else:
+            page_size = self._model_resource.page_size
+
+        select_stmt = select_stmt.offset((self.page_num - 1) * page_size)
+
+        rows = (await session.execute(select_stmt)).all()
+
+        try:
+            total_entries_count = rows[0][1]
+            orm_models = [row[0] for row in rows]
+            return ModelData(orm_models=orm_models, total_entries_count=total_entries_count)
+        except IndexError:
+            return ModelData()
