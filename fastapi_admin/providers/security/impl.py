@@ -9,12 +9,12 @@ from starlette.responses import RedirectResponse, Response
 from starlette.status import HTTP_303_SEE_OTHER, HTTP_401_UNAUTHORIZED
 
 from fastapi_admin import constants
-from fastapi_admin.database.models.abstract_admin import AbstractAdmin
-from fastapi_admin.database.repository.admin import AdminRepositoryProto, AdministratorNotFound
+from fastapi_admin.base.entities import AbstractAdmin
 from fastapi_admin.depends import get_current_admin, get_resources
 from fastapi_admin.i18n import lazy_gettext as _
 from fastapi_admin.providers import Provider
-from fastapi_admin.providers.security.dependencies import AdminRepositoryDependencyMarker
+from fastapi_admin.providers.security.dependencies import AdminDaoDependencyMarker, EntityNotFound, \
+    AdminDaoProto
 from fastapi_admin.providers.security.dto import InitAdmin, RenewPasswordForm
 from fastapi_admin.providers.security.password_hasher import PasswordHasherProto, Argon2PasswordHasher, \
     HashingFailedError
@@ -76,7 +76,7 @@ class SecurityProvider(Provider):
     async def login(
             self,
             request: Request,
-            user_repository: AdminRepositoryProto = Depends(AdminRepositoryDependencyMarker)
+            user_repository: AdminDaoProto = Depends(AdminDaoDependencyMarker)
     ) -> Response:
         form = await request.form()
         username = form.get("username")
@@ -89,7 +89,7 @@ class SecurityProvider(Provider):
         )
         try:
             admin = await user_repository.get_one_admin_by_filters(username=username)
-        except AdministratorNotFound:
+        except EntityNotFound:
             return unauthorized_response
         else:
             if await self._password_hash_is_invalid(user_repository, admin, password):
@@ -125,7 +125,7 @@ class SecurityProvider(Provider):
             request: Request,
             call_next: RequestResponseEndpoint
     ) -> Response:
-        user_repository = get_dependency_from_request_by_marker(request, AdminRepositoryDependencyMarker)
+        admin_repository = get_dependency_from_request_by_marker(request, AdminDaoDependencyMarker)
 
         token = request.cookies.get(self.access_token_key)
         path = request.scope["path"]
@@ -134,8 +134,8 @@ class SecurityProvider(Provider):
             token_key = constants.LOGIN_USER.format(token=token)
             admin_id = int(await self._redis_client.get(token_key))
             try:
-                admin = await user_repository.get_one_admin_by_filters(id=admin_id)
-            except AdministratorNotFound:
+                admin = await admin_repository.get_one_admin_by_filters(id=admin_id)
+            except EntityNotFound:
                 pass
         request.state.admin = admin
 
@@ -148,7 +148,7 @@ class SecurityProvider(Provider):
     async def init_view(
             self,
             request: Request,
-            user_repository: AdminRepositoryProto = Depends(AdminRepositoryDependencyMarker)
+            user_repository: AdminDaoProto = Depends(AdminDaoDependencyMarker)
     ) -> Response:
         if await user_repository.is_exists_at_least_one_admin():
             return self.redirect_login(request)
@@ -158,11 +158,11 @@ class SecurityProvider(Provider):
             self,
             request: Request,
             init_admin: InitAdmin = Depends(InitAdmin),
-            user_repository: AdminRepositoryProto = Depends(
-                AdminRepositoryDependencyMarker
+            admin_repository: AdminDaoProto = Depends(
+                AdminDaoDependencyMarker
             )
     ):
-        if await user_repository.is_exists_at_least_one_admin():
+        if await admin_repository.is_exists_at_least_one_admin():
             return self.redirect_login(request)
 
         if init_admin.password != init_admin.confirm_password:
@@ -173,10 +173,10 @@ class SecurityProvider(Provider):
 
         path_to_avatar_image = await self._avatar_uploader.upload(init_admin.avatar)
 
-        await user_repository.add_admin(
+        await admin_repository.add_admin(
             username=init_admin.username,
             password=self._password_hasher.hash(init_admin.password),
-            avatar=path_to_avatar_image
+            avatar=str(path_to_avatar_image)
         )
 
         return self.redirect_login(request)
@@ -205,7 +205,7 @@ class SecurityProvider(Provider):
             renew_password_form: RenewPasswordForm,
             admin: AbstractAdmin = Depends(get_current_admin),
             resources: List[dict] = Depends(get_resources),
-            user_repository: AdminRepositoryProto = Depends(AdminRepositoryDependencyMarker)
+            user_repository: AdminDaoProto = Depends(AdminDaoDependencyMarker)
     ) -> Response:
         error = None
         if self._password_hash_is_invalid(user_repository, admin, renew_password_form.old_password):
@@ -225,7 +225,7 @@ class SecurityProvider(Provider):
 
     async def _password_hash_is_invalid(
             self,
-            user_repository: AdminRepositoryProto,
+            user_repository: AdminDaoProto,
             admin: AbstractAdmin,
             password: str
     ) -> bool:

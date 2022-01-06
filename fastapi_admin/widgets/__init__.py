@@ -1,4 +1,4 @@
-from typing import Any, Generic
+from typing import Any
 
 from starlette.requests import Request
 from starlette.templating import Jinja2Templates
@@ -19,7 +19,7 @@ class Widget:
         """
         self.context = context
 
-    async def render(self, request: Request, value: Any) -> str:
+    async def render(self, value: Any) -> str:
         if value is None:
             value = ""
         if not self.template:

@@ -1,6 +1,6 @@
 import os
 import pathlib
-from typing import Callable, Optional, Protocol, Sequence
+from typing import Callable, Optional, Protocol, Sequence, Union, NewType
 
 import aiofiles
 from starlette.datastructures import UploadFile
@@ -9,12 +9,14 @@ from fastapi_admin.exceptions import FileExtNotAllowed, FileMaxSizeLimit
 
 DEFAULT_MAX_FILE_SIZE = 1024 ** 3
 
+Link = NewType("Link", str)
+
 
 class FileUploader(Protocol):
 
-    async def save_file(self, filename: str, content: bytes) -> os.PathLike: ...
+    async def save_file(self, filename: str, content: bytes) -> Union[Link, os.PathLike]: ...
 
-    async def upload(self, file: UploadFile) -> os.PathLike: ...
+    async def upload(self, file: UploadFile) -> Union[Link, os.PathLike]: ...
 
 
 class OnPremiseFileUploader:
@@ -30,7 +32,7 @@ class OnPremiseFileUploader:
         self._uploads_dir = pathlib.Path(uploads_dir)
         self._filename_generator = filename_generator
 
-    async def upload(self, file: UploadFile) -> os.PathLike:
+    async def upload(self, file: UploadFile) -> Union[Link, os.PathLike]:
         if self._filename_generator:
             filename = self._filename_generator(file)
         else:
@@ -45,7 +47,7 @@ class OnPremiseFileUploader:
 
         return await self.save_file(filename, content)  # type: ignore
 
-    async def save_file(self, filename: str, content: bytes) -> os.PathLike:
+    async def save_file(self, filename: str, content: bytes) -> Union[Link, os.PathLike]:
         """
         Save file to upload directory / filename
 
@@ -61,21 +63,18 @@ class OnPremiseFileUploader:
     def _file_has_not_allowed_extension(self, filename: str) -> bool:
         if not self._allow_extensions:
             return False
-        for ext in self._allow_extensions:
-            if filename.endswith(ext):
-                return True
-        return False
+        return all(not filename.endswith(ext) for ext in self._allow_extensions)
 
 
 class StaticFileUploader:
 
-    def __init__(self, file_uploader: FileUploader, static_path_prefix: str):
+    def __init__(self, file_uploader: FileUploader, static_path_prefix: str = "/static/uploads"):
         self._file_uploader = file_uploader
         self._static_path_prefix = static_path_prefix
 
-    async def save_file(self, filename: str, content: bytes) -> os.PathLike:
-        await self._file_uploader.save_file(filename, content)
-        return pathlib.Path(os.path.join(self._static_path_prefix, filename))
+    async def save_file(self, filename: str, content: bytes) -> Union[Link, os.PathLike]:
+        return await self._file_uploader.save_file(filename, content)
 
-    async def upload(self, file: UploadFile) -> os.PathLike:
-        return await self._file_uploader.upload(file)
+    async def upload(self, file: UploadFile) -> Union[Link, os.PathLike]:
+        await self._file_uploader.upload(file)
+        return Link(os.path.join(self._static_path_prefix, file.filename))

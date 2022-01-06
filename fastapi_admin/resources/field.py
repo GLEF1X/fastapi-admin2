@@ -2,7 +2,8 @@ from typing import Optional, Mapping
 
 from starlette.requests import Request
 
-from fastapi_admin.widgets import displays, inputs, Widget
+from fastapi_admin.widgets import displays, inputs
+from fastapi_admin.widgets.inputs import Input
 
 
 class Field:
@@ -16,7 +17,7 @@ class Field:
             name: str,
             label: Optional[str] = None,
             display: Optional[displays.Display] = None,
-            input_: Optional[Widget] = None,
+            input_: Optional[Input] = None,
     ):
         self.name = name
         self.label = label or name.title()

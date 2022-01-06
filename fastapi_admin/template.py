@@ -1,5 +1,6 @@
+import os
 from datetime import date
-from typing import Any
+from typing import Any, Union
 from urllib.parse import urlencode
 
 from jinja2 import pass_context
@@ -33,6 +34,6 @@ def set_global_env(name: str, value: Any):
     templates.env.globals[name] = value
 
 
-def add_template_folder(*folders: str):
+def add_template_folder(*folders: Union[str, os.PathLike]):
     for folder in folders:
         templates.env.loader.searchpath.insert(0, folder)  # type: ignore

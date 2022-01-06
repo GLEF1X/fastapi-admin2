@@ -2,15 +2,17 @@ from datetime import datetime
 from typing import List, Any
 
 import orjson
-from sqlalchemy.sql.operators import ilike_op
+from sqlalchemy.sql.operators import match_op
 from starlette.requests import Request
 
 from fastapi_admin.app import FastAPIAdmin
 from fastapi_admin.constants import DATETIME_FORMAT
+from fastapi_admin.dialects.sqla import filters
+from fastapi_admin.dialects.sqla.model_resource import Model
 from fastapi_admin.enums import HTTPMethod
-from fastapi_admin.resources import Action, Dropdown, Field, Link, Model, ToolbarAction
+from fastapi_admin.resources import Action, Dropdown, Field, Link, ToolbarAction
 from fastapi_admin.utils.file_upload import OnPremiseFileUploader, StaticFileUploader
-from fastapi_admin.widgets import displays, filters, inputs
+from fastapi_admin.widgets import displays, inputs
 from src.admin_panel.settings import BASE_DIR
 from src.entities import enums
 from src.entities.enums import ProductType
@@ -44,7 +46,7 @@ class AdminResource(Model):
             label="Имя",
             placeholder="Никнейм",
         ),
-        filters.DatetimeRange(name="created_at", label="Дата создания"),
+        filters.DateTimeRange(name="created_at", label="Дата создания"),
     ]
     fields = [
         "id",
@@ -61,8 +63,7 @@ class AdminResource(Model):
             label="Аватарка",
             display=displays.Image(width="40"),
             input_=inputs.Image(null=True, upload=StaticFileUploader(
-                OnPremiseFileUploader(uploads_dir=BASE_DIR / "static" / "uploads"),
-                static_path_prefix="/static/uploads"
+                OnPremiseFileUploader(uploads_dir=BASE_DIR / "static" / "uploads")
             )),
         ),
         Field(
@@ -99,9 +100,9 @@ class Content(Dropdown):
         model = Product
         filters = [
             filters.Enum(enum=enums.ProductType, name="type", label="Тип продукта"),
-            filters.DatetimeRange(name="created_at", label="Дата создания"),
+            filters.DateTimeRange(name="created_at", label="Дата создания"),
             filters.Boolean(name="is_reviewed", label="Готов к продаже"),
-            filters.ForeignKey(to_column=Product.category_id, name="category", label="Категория")
+            # filters.ForeignKey(to_column=Product.category_id, name="category", label="Категория")
         ]
 
         fields = [
@@ -115,11 +116,11 @@ class Content(Dropdown):
                 "created_at", label="Дата создания",
                 input_=inputs.DateTime(default=datetime.now().strftime(DATETIME_FORMAT))
             ),
-            Field(
-                "category_id",
-                label="Категория",
-                input_=inputs.ForeignKey(to_column=Product.category_id)
-            )
+            # Field(
+            #     "category_id",
+            #     label="Категория",
+            #     input_=inputs.ForeignKey(to_column=Product.category_id)
+            # )
         ]
 
     label = "Контент"
@@ -133,7 +134,7 @@ class ConfigResource(Model):
     icon = "fas fa-cogs"
     filters = [
         filters.Enum(enum=enums.Status, name="status", label="Статус"),
-        filters.Search(name="key", label="Ключ", comparator=ilike_op),
+        filters.Search(name="key", label="Ключ", sqlalchemy_operator=match_op),
     ]
     fields = [
         "id",

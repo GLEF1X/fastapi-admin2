@@ -1,12 +1,11 @@
 from operator import eq
-from typing import Tuple, Optional, Any, no_type_check, List, Union, TypeVar, Iterable
+from typing import no_type_check, Tuple, Optional, Any, Iterable, TypeVar, Union, List
 
-from sqlalchemy import ForeignKey, inspect, and_, or_, Column, tuple_
-from sqlalchemy.orm import RelationshipProperty
-from sqlalchemy.sql import Select, Insert
+from sqlalchemy import inspect, ForeignKey, Column, tuple_, and_, or_
+from sqlalchemy.orm import RelationshipProperty, MapperProperty
+from sqlalchemy.sql import Insert, Select
 from sqlalchemy.sql.dml import UpdateBase
 from sqlalchemy.sql.elements import BooleanClauseList
-from sqlalchemy.orm import class_mapper
 
 
 @no_type_check
@@ -53,6 +52,19 @@ def get_related_querier_from_model_by_foreign_key(column):
     return querier
 
 
+def _resolve_prop(prop: MapperProperty) -> MapperProperty:
+    """
+        Resolve proxied property
+        :param prop:
+            Property to resolve
+    """
+    # Try to see if it is proxied property
+    if hasattr(prop, '_proxied_property'):
+        return prop._proxied_property
+
+    return prop
+
+
 def _find_relation_for_foreign_key(relationships: Iterable[RelationshipProperty],
                                    local_foreign_key_column: Any) -> Optional[RelationshipProperty]:
     for relationship in relationships:
@@ -66,7 +78,7 @@ def _find_relation_for_foreign_key(relationships: Iterable[RelationshipProperty]
 _S = TypeVar("_S", bound=Union[UpdateBase, Insert, Select])
 
 
-def include_where_condition_by_pk(statement: _S, model: Any, ids: List[Any]) -> _S:
+def include_where_condition_by_pk(statement: _S, model: Any, ids: Union[List[str], str]) -> _S:
     """
     Return a query object filtered by primary key values passed in `ids` argument.
     Unfortunately, it is not possible to use `in_` filter if model has more than one
@@ -74,11 +86,24 @@ def include_where_condition_by_pk(statement: _S, model: Any, ids: List[Any]) -> 
     """
     if has_multiple_pks(model):
         model_pk: List[Column] = [getattr(model, name) for name in get_primary_key(model)]
-        statement = statement.where(tuple_(*model_pk).in_(ids))
     else:
         model_pk: Column = getattr(model, get_primary_key(model))
-        ids = map(model_pk.type.python_type, ids)
-        statement = statement.where(model_pk.in_(ids))
+
+    if isinstance(ids, str):
+        if not has_multiple_pks(model):
+            statement = statement.where(model_pk == ids)
+        else:
+            statement = statement.where(
+                or_(
+                    *[pk == ids for pk in model_pk]
+                )
+            )
+    else:
+        if has_multiple_pks(model):
+            statement = statement.where(tuple_(*model_pk).in_(ids))
+        else:
+            ids = map(model_pk.type.python_type, ids)
+            statement = statement.where(model_pk.in_(ids))
 
     return statement
 

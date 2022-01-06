@@ -2,14 +2,15 @@ from sqlalchemy import Column, TIMESTAMP, func, Text, VARCHAR, Boolean, false, B
     ForeignKey
 from sqlalchemy.orm import relationship
 
-from fastapi_admin.database.models.abstract_admin import AbstractAdmin
-from fastapi_admin.database.models.base import OrmModelBase
+from fastapi_admin.dialects.sqla import SqlalchemyAdminModel
+from fastapi_admin.dialects.sqla.models import Base
 from src.entities.enums import Status
 
 
-class Admin(AbstractAdmin):
+class Admin(SqlalchemyAdminModel):
     __tablename__ = "admins"
 
+    id = Column(BIGINT(), Identity(always=True, cache=10), primary_key=True)
     last_login = Column(TIMESTAMP(timezone=True), server_default=func.now())
     email = Column(VARCHAR(200), default="")
     intro = Column(Text, server_default="")
@@ -19,7 +20,7 @@ class Admin(AbstractAdmin):
         return f"{self.id}#{self.username}"
 
 
-class Category(OrmModelBase):
+class Category(Base):
     __tablename__ = "categories"
 
     id = Column(BIGINT(), Identity(always=True, cache=10), primary_key=True)
@@ -31,7 +32,9 @@ class Category(OrmModelBase):
         return self.name
 
 
-class Product(OrmModelBase):
+class Product(Base):
+    __tablename__ = "products"
+
     id = Column(BIGINT(), Identity(always=True, cache=10), primary_key=True)
     category_id = Column(BIGINT(), ForeignKey("categories.id"), nullable=False)
     name = Column(VARCHAR(50), default="")
@@ -43,7 +46,9 @@ class Product(OrmModelBase):
     category: Category = relationship("Category", backref="products")
 
 
-class Config(OrmModelBase):
+class Config(Base):
+    __tablename__ = "configs"
+
     id = Column(BIGINT(), Identity(always=True, cache=10), primary_key=True)
     label = Column(VARCHAR(200), server_default="")
     key = Column(VARCHAR(20), nullable=False, unique=True)

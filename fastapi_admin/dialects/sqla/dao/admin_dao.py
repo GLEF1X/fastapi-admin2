@@ -1,32 +1,17 @@
-from typing import Protocol, Any, Dict, Type
+from typing import Type, Any, Dict
 
 from sqlalchemy import select, exists, insert, update
-from sqlalchemy.exc import MultipleResultsFound, SQLAlchemyError, NoResultFound
+from sqlalchemy.exc import MultipleResultsFound, NoResultFound, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi_admin.database.models.abstract_admin import AbstractAdmin
-from fastapi_admin.exceptions import DatabaseError
+from fastapi_admin.base.entities import AbstractAdmin
+from fastapi_admin.dialects.sqla.models import SqlalchemyAdminModel
+from fastapi_admin.providers.security.dependencies import EntityNotFound
 
 
-class AdministratorNotFound(DatabaseError):
-    def __init__(self, origin_exception: SQLAlchemyError):
-        self.origin_exception = origin_exception
+class SqlalchemyAdminDao:
 
-
-class AdminRepositoryProto(Protocol):
-
-    async def get_one_admin_by_filters(self, **filters: Any) -> AbstractAdmin: ...
-
-    async def is_exists_at_least_one_admin(self, **filters: Any) -> bool: ...
-
-    async def add_admin(self, **values: Any) -> None: ...
-
-    async def update_admin(self, filters: Dict[Any, Any], **values: Any) -> None: ...
-
-
-class AdminRepository:
-
-    def __init__(self, session: AsyncSession, admin_model_cls: Type[AbstractAdmin]):
+    def __init__(self, session: AsyncSession, admin_model_cls: Type[SqlalchemyAdminModel]):
         self._session = session
         self._admin_model_cls = admin_model_cls
 
@@ -52,3 +37,8 @@ class AdminRepository:
         stmt = update(self._admin_model_cls).filter_by(**filters).values(**values)
         async with self._session.begin():
             await self._session.execute(stmt)
+
+
+class AdministratorNotFound(EntityNotFound):
+    def __init__(self, origin_exception: SQLAlchemyError):
+        self.origin_exception = origin_exception

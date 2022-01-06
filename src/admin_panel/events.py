@@ -2,7 +2,7 @@ from typing import Callable, Coroutine, Any
 
 from fastapi import FastAPI
 
-from fastapi_admin.database.models.base import OrmModelBase
+from fastapi_admin.dialects.sqla.models import Base
 
 
 def create_on_startup_handler(app: FastAPI) -> Callable[..., Coroutine[Any, Any, None]]:
@@ -10,8 +10,8 @@ def create_on_startup_handler(app: FastAPI) -> Callable[..., Coroutine[Any, Any,
         pass
         # engine = app.state.engine
         # async with engine.begin() as conn:
-        #     await conn.run_sync(OrmModelBase.metadata.drop_all)
-        #     await conn.run_sync(OrmModelBase.metadata.create_all)
+        #     await conn.run_sync(Base.metadata.drop_all)
+        #     await conn.run_sync(Base.metadata.create_all)
 
     return on_startup
 

@@ -5,7 +5,7 @@ from starlette.responses import RedirectResponse
 from starlette.status import HTTP_303_SEE_OTHER, HTTP_404_NOT_FOUND
 
 from fastapi_admin.depends import get_resources
-from fastapi_admin.general_dependencies import AsyncSessionDependencyMarker
+from fastapi_admin.dialects.sqla.markers import AsyncSessionDependencyMarker
 from fastapi_admin.template import templates
 from src.infrastructure.impl.orm.models import Config
 

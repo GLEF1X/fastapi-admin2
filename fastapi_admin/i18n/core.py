@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Dict, Generator, Optional, Tuple
 
-from fastapi_admin.constants import DEFAULT_LOCALES_PATH
+from fastapi_admin.constants import PATH_TO_LOCALES
 from fastapi_admin.i18n.lazy_proxy import LazyProxy
 from fastapi_admin.i18n._context_mixin import ContextInstanceMixin
 from fastapi_admin.template import templates
@@ -14,7 +14,7 @@ class I18nService(ContextInstanceMixin["I18nService"]):
     def __init__(
             self,
             *,
-            path_to_default_translations: os.PathLike = DEFAULT_LOCALES_PATH,
+            path_to_default_translations: os.PathLike = PATH_TO_LOCALES,
             path_to_extra_translations: Optional[os.PathLike] = None,
             default_locale: str = "en",
             domain: str = "messages",

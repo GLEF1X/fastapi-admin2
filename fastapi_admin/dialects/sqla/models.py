@@ -1,9 +1,10 @@
-from sqlalchemy import Column, VARCHAR, BIGINT, Identity
+from sqlalchemy import Identity, VARCHAR, Column, BIGINT
+from sqlalchemy.orm import declarative_base
 
-from fastapi_admin.database.models.base import OrmModelBase
+Base = declarative_base()
 
 
-class AbstractAdmin(OrmModelBase):
+class SqlalchemyAdminModel(Base):
     __abstract__ = True
 
     id = Column(BIGINT(), Identity(always=True, cache=10), primary_key=True)

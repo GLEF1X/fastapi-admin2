@@ -3,16 +3,10 @@ import json
 from enum import Enum as EnumCLS
 from typing import Any, List, Optional, Tuple, Type, Callable
 
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.datastructures import UploadFile
-from starlette.requests import Request
 
 from fastapi_admin import constants
 from fastapi_admin.utils.file_upload import FileUploader
-from fastapi_admin.general_dependencies import SessionMakerDependencyMarker
-from fastapi_admin.utils.depends import get_dependency_from_request_by_marker
-from fastapi_admin.utils.sqlalchemy import get_primary_key, get_related_querier_from_model_by_foreign_key
 from fastapi_admin.widgets import Widget
 
 
@@ -25,19 +19,19 @@ class Input(Widget):
         super().__init__(null=null, help_text=help_text, **context)
         self.default = default
 
-    async def parse_value(self, request: Request, value: Any):
+    async def parse_value(self, value: Any):
         """
         Parse value from frontend
-        :param request:
+
         :param value:
         :return:
         """
         return value
 
-    async def render(self, request: Request, value: Any) -> str:
+    async def render(self, value: Any) -> str:
         if value is None:
             value = self.default
-        return await super(Input, self).render(request, value)
+        return await super().render(value)
 
 
 class DisplayOnly(Input):
@@ -82,7 +76,7 @@ class Select(Input):
         super().__init__(help_text=help_text, null=null, default=default, disabled=disabled)
 
     @abc.abstractmethod
-    async def get_options(self):
+    async def get_options(self) -> List[Tuple[Any, ...]]:
         """
         return list of tuple with display and value
 
@@ -91,64 +85,18 @@ class Select(Input):
         :return: list of tuple with display and value
         """
 
-    async def render(self, request: Request, value: Any):
+    async def render(self, value: Any) -> str:
         options = await self.get_options()
         self.context.update(options=options)
-        return await super(Select, self).render(request, value)
+        return await super(Select, self).render(value)
 
 
-class ForeignKey(Input):
-    template = "widgets/inputs/select.html"
-
-    def __init__(
-            self,
-            to_column: Any,
-            default: Any = None,
-            null: bool = False,
-            disabled: bool = False,
-            help_text: Optional[str] = None,
-    ):
-        super().__init__(help_text=help_text, default=default, null=null, disabled=disabled)
-        self.querier = get_related_querier_from_model_by_foreign_key(to_column)
-        self._pk = get_primary_key(self.querier)
-
-    async def render(self, request: Request, value: Any):
-        session_pool = get_dependency_from_request_by_marker(request, SessionMakerDependencyMarker)
-        async with session_pool.begin() as session:  # type: AsyncSession
-            results = (await session.execute(select(self.querier))).scalars().all()
-            options = [(str(model), getattr(model, self._pk)) for model in results]
-        self.context.update(options=options)
-        return await super().render(request, value)
+class BaseForeignKeyInput(Select, abc.ABC):
+    pass
 
 
-class ManyToMany(Input):
+class BaseManyToManyInput(Select, abc.ABC):
     template = "widgets/inputs/many_to_many.html"
-
-    def __init__(
-            self,
-            model: Type[Any],
-            disabled: bool = False,
-            help_text: Optional[str] = None,
-    ):
-        super().__init__(help_text=help_text, disabled=disabled)
-        self.model = model
-
-    async def get_options(self):
-        ret = await self.get_queryset()
-        options = [dict(label=str(x), value=x.pk) for x in ret]
-        return options
-
-    async def get_queryset(self):
-        return await self.model.all()
-
-    async def render(self, request: Request, value: Any):
-        options = await self.get_options()
-        selected = list(map(lambda x: x.pk, value.related_objects if value else []))
-        for option in options:
-            if option.get("value") in selected:
-                option["selected"] = True
-        self.context.update(options=json.dumps(options))
-        return await super(Input, self).render(request, value)
 
 
 class Enum(Select):
@@ -165,7 +113,7 @@ class Enum(Select):
         self.enum = enum
         self.enum_type = enum_type
 
-    async def parse_value(self, request: Request, value: Any):
+    async def parse_value(self, value: Any):
         return self.enum(self.enum_type(value))
 
     async def get_options(self):
@@ -200,10 +148,10 @@ class Json(Input):
         self.context.update(options=options)
         self._dumper = dumper
 
-    async def render(self, request: Request, value: Any):
+    async def render(self, value: Any):
         if value:
             value = self._dumper(value)
-        return await super().render(request, value)
+        return await super().render(value)
 
 
 class TextArea(Text):
@@ -280,7 +228,7 @@ class File(Input):
         )
         self.upload = upload
 
-    async def parse_value(self, request: Request, value: Optional[UploadFile]):
+    async def parse_value(self, value: Optional[UploadFile]):
         if value and value.filename:
             return await self.upload.upload(value)
         return None
@@ -315,7 +263,7 @@ class RadioEnum(Enum):
 class Switch(Input):
     template = "widgets/inputs/switch.html"
 
-    async def parse_value(self, request: Request, value: str):
+    async def parse_value(self, value: str):
         if value == "on":
             return True
         return False
