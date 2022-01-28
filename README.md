@@ -12,6 +12,6 @@ but it will become it.
 
 ## How does it look like?
 
-![](https://github.com/GLEF1X/fastapi-admin2/docs/_static/example.png)
+![](https://github.com/GLEF1X/fastapi-admin2/blob/dev/docs/_static/example.png?raw=true)
 
 
