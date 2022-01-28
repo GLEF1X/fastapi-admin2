@@ -8,19 +8,17 @@ authors = ["Gleb Garanin <glebgar567@gmail.com>"]
 python = "^3.9"
 asyncpg = "^0.25.0"
 dynaconf = "^3.1.7"
-Babel = "*"
-aiofiles = "*"
+babel = "^2.9.1"
+aiofiles = "0.8.0"
 aioredis = "^2.0.1"
-bcrypt = "*"
-fastapi = "*"
+fastapi = "^0.73.0"
 jinja2 = "*"
 python-multipart = "*"
-tortoise-orm = "*"
-uvicorn = { version = "*", extras = ["standard"] }
-pendulum = "*"
+tortoise-orm = "0.18.1"
+uvicorn = { version = "0.17.0.post1", extras = ["standard"] }
+pendulum = "2.1.2"
 argon2-cffi = "^21.3.0"
-coverage = "^6.2"
-orjson = "^3.6.5"
+orjson = "^3.6.6"
 gunicorn = "^20.1.0"
 SQLAlchemy = "^1.4.29"
 
@@ -37,6 +35,8 @@ asyncmy = "*"
 python-dotenv = "*"
 pytest = "^6.2.5"
 pytest-asyncio = "^0.16.0"
+
+coverage = "^6.2"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

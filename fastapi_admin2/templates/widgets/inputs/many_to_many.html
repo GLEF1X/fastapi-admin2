@@ -1,0 +1,39 @@
+{% with id = 'form-select-' + name %}
+    <div class="form-group mb-3">
+        <div class="form-label">{{ label }}</div>
+        <select multiple class="form-select" name="{{ name }}" id="{{ id }}">
+        </select>
+        {% if help_text %}
+            <small class="form-hint">
+                {{ help_text }}
+            </small>
+        {% endif %}
+    </div>
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var el;
+        window.TomSelect && (new TomSelect(el = document.getElementById('{{ id }}'), {
+            copyClassesToDropdown: false,
+            plugins: ['input_autogrow'],
+            dropdownClass: 'dropdown-menu',
+            optionClass: 'dropdown-item',
+            controlInput: '<input>',
+            render: {
+                item: function (data, escape) {
+                    if (data.customProperties) {
+                        return '<div><span class="dropdown-item-indicator">' + data.customProperties + '</span>' + escape(data.text) + '</div>';
+                    }
+                    return '<div>' + escape(data.text) + '</div>';
+                },
+                option: function (data, escape) {
+                    if (data.customProperties) {
+                        return '<div><span class="dropdown-item-indicator">' + data.customProperties + '</span>' + escape(data.text) + '</div>';
+                    }
+                    return '<div>' + escape(data.text) + '</div>';
+                },
+            },
+            options: {{ options|safe }}
+        }));
+    });
+    </script>
+{% endwith %}
