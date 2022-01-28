@@ -1,5 +1,4 @@
 import functools
-import operator
 from datetime import date, datetime
 from typing import Any, Callable, Dict
 from typing import Tuple, Union
@@ -8,13 +7,13 @@ import pendulum
 from sqlalchemy import Column, between
 from sqlalchemy.sql import ClauseElement
 from sqlalchemy.sql.elements import BinaryExpression
-from sqlalchemy.sql.operators import is_, match_op, ilike_op
+from sqlalchemy.sql.operators import is_, match_op, ilike_op, eq as equals, like_op
 
 from fastapi_admin2.widgets.filters import BaseSearchFilter, BaseDateRangeFilter, BaseDatetimeRangeFilter, \
-    BaseEnumFilter, BaseBooleanFilter
+    BaseEnumFilter, BaseBooleanFilter, PublicFilter
 
 
-def between_op(
+def between(
         column: Column[Union[date, datetime]],
         date_range: Tuple[pendulum.DateTime, pendulum.DateTime]
 ) -> BinaryExpression:
@@ -50,11 +49,19 @@ class Search(BaseSearchFilter):
     def operator(self) -> Any:
         return functools.partial(self._sqlalchemy_operator, **self._full_text_search_config)
 
+    async def generate_public_filter(self, value: Any) -> PublicFilter:
+        if self._sqlalchemy_operator in {ilike_op, like_op}:
+            value = f"%{value}%"
+
+        return PublicFilter(
+            name=self.name,
+            operator=self.operator,
+            value=value
+        )
+
 
 class DateRange(BaseDateRangeFilter):
-    @property
-    def operator(self) -> Any:
-        return between_op
+    operator = between
 
 
 class DateTimeRange(BaseDatetimeRangeFilter, DateRange):
@@ -62,12 +69,8 @@ class DateTimeRange(BaseDatetimeRangeFilter, DateRange):
 
 
 class Enum(BaseEnumFilter):
-    @property
-    def operator(self) -> Any:
-        return operator.eq
+    operator = equals
 
 
 class Boolean(BaseBooleanFilter):
-    @property
-    def operator(self) -> Any:
-        return is_
+    operator = is_
