@@ -125,21 +125,25 @@ class SecurityProvider(Provider):
             request: Request,
             call_next: RequestResponseEndpoint
     ) -> Response:
-        admin_repository = get_dependency_from_request_by_marker(request, AdminDaoDependencyMarker)
+        request.state.admin = None
 
-        token = request.cookies.get(self.access_token_key)
+        admin_dao: AdminDaoProto = get_dependency_from_request_by_marker(request, AdminDaoDependencyMarker)
+
+        access_token = request.cookies.get(self.access_token_key)
         path = request.scope["path"]
-        admin = None
-        if token:
-            token_key = constants.LOGIN_USER.format(token=token)
-            admin_id = int(await self._redis_client.get(token_key))
-            try:
-                admin = await admin_repository.get_one_admin_by_filters(id=admin_id)
-            except EntityNotFound:
-                pass
+        if not access_token:
+            return await call_next(request)
+
+        token_key = constants.LOGIN_USER.format(token=access_token)
+        admin_id = await self._redis_client.get(token_key)
+        try:
+            admin = await admin_dao.get_one_admin_by_filters(id=int(admin_id))
+        except (EntityNotFound, TypeError):
+            return await call_next(request)
+
         request.state.admin = admin
 
-        if path == self.login_path and admin:
+        if path == self.login_path:
             return RedirectResponse(url=request.app.admin_path, status_code=HTTP_303_SEE_OTHER)
 
         response = await call_next(request)

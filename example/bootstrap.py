@@ -67,7 +67,7 @@ class ApplicationBuilder:
             class_=AsyncSession
         )
 
-        app = FastAPIAdmin(
+        admin_app = FastAPIAdmin(
             dialect=SQLAlchemyDialect(engine, session_pool, Admin),
             logo_url="https://svgshare.com/i/d4D.svg",
             template_folders=[BASE_DIR / "templates"],
@@ -85,10 +85,10 @@ class ApplicationBuilder:
         )
         self._main_app.state.engine = engine
 
-        resources.register(app)
-        app.include_router(admin_panel_main_router)
+        resources.register(admin_app)
+        admin_app.include_router(admin_panel_main_router)
 
-        self._main_app.mount("/admin", app)
+        self._main_app.mount("/admin", admin_app)
 
     def _register_middlewares(self) -> None:
         self._main_app.add_middleware(

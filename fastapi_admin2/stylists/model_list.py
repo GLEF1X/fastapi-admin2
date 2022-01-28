@@ -6,7 +6,7 @@ from fastapi import Depends
 from starlette.requests import Request
 
 from fastapi_admin2.depends import get_model_resource
-from fastapi_admin2.resources import AbstractModelResource, ComputeField
+from fastapi_admin2.resources import AbstractModelResource, ComputedField
 
 
 @dataclasses.dataclass(frozen=True)
@@ -62,7 +62,7 @@ class ModelResourceListStylist:
         for orm_model_instance in values:
             row = []
             for field in self._model_resource.get_model_fields_for_display():
-                if isinstance(field, ComputeField):
+                if isinstance(field, ComputedField):
                     field_value = await field.get_value(self._request, orm_model_instance)
                 else:
                     field_value = getattr(orm_model_instance, field.name, None)

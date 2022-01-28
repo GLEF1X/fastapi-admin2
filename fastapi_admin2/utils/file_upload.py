@@ -42,7 +42,7 @@ class OnPremiseFileUploader:
         if file_size > self._max_size:
             raise FileMaxSizeLimit(f"File size {file_size} exceeds max size {self._max_size}")
 
-        if self._file_has_not_allowed_extension(filename):
+        if self._file_extension_is_not_allowed(filename):
             raise FileExtNotAllowed(f"File ext is not allowed of {self._allow_extensions}")
 
         return await self.save_file(filename, content)  # type: ignore
@@ -60,7 +60,7 @@ class OnPremiseFileUploader:
             await f.write(content)
         return path_to_file
 
-    def _file_has_not_allowed_extension(self, filename: str) -> bool:
+    def _file_extension_is_not_allowed(self, filename: str) -> bool:
         if not self._allow_extensions:
             return False
         return all(not filename.endswith(ext) for ext in self._allow_extensions)

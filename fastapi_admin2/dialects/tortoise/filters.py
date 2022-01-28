@@ -33,9 +33,7 @@ class Search(BaseSearchFilter):
 
 
 class DateRange(BaseDateRangeFilter):
-    @property
-    def operator(self) -> Any:
-        return TORTOISE_EQUAL_OP
+    operator = TORTOISE_EQUAL_OP
 
 
 class DateTimeRange(BaseDatetimeRangeFilter, DateRange):
@@ -43,12 +41,8 @@ class DateTimeRange(BaseDatetimeRangeFilter, DateRange):
 
 
 class Enum(BaseEnumFilter):
-    @property
-    def operator(self) -> Any:
-        return TORTOISE_EQUAL_OP
+    operator = TORTOISE_EQUAL_OP
 
 
 class Boolean(BaseBooleanFilter):
-    @property
-    def operator(self) -> Any:
-        return TORTOISE_EQUAL_OP
+    operator = TORTOISE_EQUAL_OP

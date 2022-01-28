@@ -10,4 +10,8 @@ but it will become it.
 * Implement auto-resolving relationships, foreign keys for `sqlalchemy` 
 * Write tests to achieve 100% code coverage
 
+## How does it look like?
+
+![](https://github.com/GLEF1X/fastapi-admin2/docs/_static/example.png)
+
 

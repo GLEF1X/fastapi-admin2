@@ -31,6 +31,6 @@ class Field:
         self.input = input_
 
 
-class ComputeField(Field):
+class ComputedField(Field):
     async def get_value(self, request: Request, obj: Mapping):
         return obj.get(self.name)

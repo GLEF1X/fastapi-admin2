@@ -7,7 +7,7 @@ from starlette.requests import Request
 from fastapi_admin2.dialects.sqla.filters import Search
 from fastapi_admin2.exceptions import FieldNotFoundError
 from fastapi_admin2.resources import AbstractModelResource
-from fastapi_admin2.resources.field import Field, ComputeField
+from fastapi_admin2.resources.field import Field, ComputedField
 from fastapi_admin2.resources.model import Q
 from fastapi_admin2.widgets import inputs, displays
 
@@ -64,7 +64,7 @@ class Model(AbstractModelResource):
     def _create_field_iterator(
             cls,
             sqlalchemy_model_columns: Sequence[Column] = ()
-    ) -> Iterable[Union[str, Field, ComputeField]]:
+    ) -> Iterable[Union[str, Field, ComputedField]]:
         field_iterator = cls.fields
         if not field_iterator:
             field_iterator = [

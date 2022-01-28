@@ -1,26 +1,21 @@
 [tool.poetry]
-name = "fastapi-admin-astro"
-version = "0.1.0"
+name = "fastapi-admin2"
+version = "0.0.1a1"
 description = ""
 authors = ["Gleb Garanin <glebgar567@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
-asyncpg = "^0.25.0"
-dynaconf = "^3.1.7"
+python = "^3.8"
 babel = "^2.9.1"
 aiofiles = "0.8.0"
 aioredis = "^2.0.1"
 fastapi = "^0.73.0"
 jinja2 = "*"
 python-multipart = "*"
-tortoise-orm = "0.18.1"
-uvicorn = { version = "0.17.0.post1", extras = ["standard"] }
 pendulum = "2.1.2"
 argon2-cffi = "^21.3.0"
 orjson = "^3.6.6"
-gunicorn = "^20.1.0"
-SQLAlchemy = "^1.4.29"
+sqlalchemy2-stubs = "^0.0.2-alpha.19"
 
 
 [tool.poetry.dev-dependencies]
@@ -35,8 +30,22 @@ asyncmy = "*"
 python-dotenv = "*"
 pytest = "^6.2.5"
 pytest-asyncio = "^0.16.0"
+gunicorn = "^20.1.0"
+uvicorn = { version = "0.17.0.post1", extras = ["standard"] }
 
 coverage = "^6.2"
+
+# orm dialects
+tortoise-orm = "0.18.1"
+SQLAlchemy = "^1.4.31"
+sqlalchemy2-stubs = "*"
+
+# subdeps of orm dialects
+asyncpg = "^0.25.0"
+
+# example
+dynaconf = "^3.1.7"
+
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

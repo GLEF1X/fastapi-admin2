@@ -8,7 +8,7 @@ from fastapi_admin2.enums import HTTPMethod
 from fastapi_admin2.i18n import gettext as _
 from fastapi_admin2.resources.action import ToolbarAction, Action
 from fastapi_admin2.resources.base import Resource
-from fastapi_admin2.resources.field import Field, ComputeField
+from fastapi_admin2.resources.field import Field, ComputedField
 from fastapi_admin2.widgets import inputs, displays
 from fastapi_admin2.widgets.filters import AbstractFilter
 
@@ -23,9 +23,14 @@ class AbstractModelResource(Resource, abc.ABC):
     page_title: Optional[str] = None
     filters: List[Union[str, AbstractFilter]] = []
 
-    @property
-    @abc.abstractmethod
-    def _default_filter(self) -> Type[AbstractFilter]: ...
+    _default_filter: Type[AbstractFilter]
+
+    def __init_subclass__(cls, **kwargs: Any):
+        super().__init_subclass__(**kwargs)
+        if not hasattr(cls, "_default_filter"):
+            raise NotImplementedError(
+                "`_default_filter` must be specified in subclasses of AbstractModelResource"
+            )
 
     @classmethod
     async def render_inputs(cls, obj: Optional[Any] = None) -> List[str]:
@@ -98,7 +103,7 @@ class AbstractModelResource(Resource, abc.ABC):
         display_fields = cls.get_model_fields_for_display()
         return [
             field for field in display_fields
-            if not isinstance(field, ComputeField) and not isinstance(field.display, inputs.DisplayOnly)
+            if not isinstance(field, ComputedField) and not isinstance(field.display, inputs.DisplayOnly)
         ]
 
     @classmethod
