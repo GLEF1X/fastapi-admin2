@@ -1,6 +1,6 @@
 import os
 from datetime import date
-from typing import Any, Union
+from typing import Any, Union, Dict
 from urllib.parse import urlencode
 
 from jinja2 import pass_context
@@ -18,7 +18,7 @@ templates.env.add_extension("jinja2.ext.autoescape")
 
 
 @pass_context
-def current_page_with_params(context: dict, params: dict):
+def current_page_with_params(context: Dict[str, Any], params: Dict[str, Any]) -> str:
     request = context["request"]  # type: Request
     full_path = request.scope["raw_path"].decode()
     query_params = dict(request.query_params)

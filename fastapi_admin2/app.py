@@ -15,23 +15,26 @@ from starlette.status import HTTP_403_FORBIDDEN, HTTP_401_UNAUTHORIZED, HTTP_404
 from fastapi_admin2.i18n.middleware import AbstractI18nMiddleware
 from fastapi_admin2.i18n.stub import _I18nMiddlewareStub
 from fastapi_admin2.providers import Provider
-from . import template
 from .exceptions import not_found_error_exception, server_error_exception, forbidden_error_exception, \
     unauthorized_error_exception
 from .resources import AbstractModelResource as ModelResource
 from .resources import Dropdown
 from .resources.base import Resource
 from .routes import resources
+from .template import add_template_folder
 
 
-class ORMDialect(Protocol):
+class ORMBackend(Protocol):
     def configure(self, app: FastAPI) -> None: ...
+
+
+ORMModel = Any
 
 
 class FastAPIAdmin(FastAPI):
 
     def __init__(self, *,
-                 dialect: ORMDialect,
+                 backend: ORMBackend,
                  login_logo_url: Optional[str] = None,
                  add_custom_exception_handlers: bool = True,
                  logo_url: Optional[str] = None,
@@ -81,17 +84,17 @@ class FastAPIAdmin(FastAPI):
         self.admin_path = admin_path
         self.logo_url = logo_url
         self.favicon_url = favicon_url
+
         if template_folders:
-            template.add_template_folder(*template_folders)
+            add_template_folder(*template_folders)
 
         self.add_middleware(i18n_middleware)
         self.language_switch = True
 
-        self._dialect = dialect
+        self._orm_backend = backend
 
         self.resources: List[Type[Resource]] = []
-        self.model_resources: Dict[Type[Any], Type[Resource]] = {}
-        self.favicon_url: Optional[str] = None
+        self.model_resources: Dict[Type[ORMModel], Type[Resource]] = {}
 
         if add_custom_exception_handlers:
             self.add_exception_handler(HTTP_500_INTERNAL_SERVER_ERROR, server_error_exception)
@@ -104,7 +107,7 @@ class FastAPIAdmin(FastAPI):
 
         self._register_providers(providers)
         self.include_router(resources.router)
-        self._dialect.configure(self)
+        self._orm_backend.configure(self)
 
     def _register_providers(self, providers: Optional[List[Provider]] = None):
         for p in providers or []:
@@ -118,13 +121,12 @@ class FastAPIAdmin(FastAPI):
         self._set_model_resource(resource)
         self.resources.append(resource)
 
-    def _set_model_resource(self, resource: Type[Resource]):
+    def _set_model_resource(self, resource: Type[Resource]) -> None:
         if issubclass(resource, ModelResource):
             self.model_resources[resource.model] = resource
         elif issubclass(resource, Dropdown):
             for r in resource.resources:
                 self._set_model_resource(r)
 
-    def get_model_resource(self, model: Type[Any]) -> Optional[Resource]:
-        r = self.model_resources.get(model)
-        return r() if r else None
+    def get_model_resource_type(self, model: Type[ORMModel]) -> Optional[Type[Resource]]:
+        return self.model_resources.get(model)

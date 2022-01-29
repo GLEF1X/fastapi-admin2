@@ -92,10 +92,19 @@ class Select(Input):
 
 
 class BaseForeignKeyInput(Select, abc.ABC):
-    pass
+    def __init__(
+            self,
+            model: Any,
+            default: Optional[Any] = None,
+            null: bool = False,
+            disabled: bool = False,
+            help_text: Optional[str] = None,
+    ):
+        super().__init__(help_text=help_text, default=default, null=null, disabled=disabled)
+        self.model = model
 
 
-class BaseManyToManyInput(Select, abc.ABC):
+class BaseManyToManyInput(BaseForeignKeyInput, abc.ABC):
     template = "widgets/inputs/many_to_many.html"
 
 

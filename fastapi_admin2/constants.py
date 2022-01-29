@@ -18,4 +18,4 @@ LOGIN_ERROR_TIMES = "login_error_times:{ip}"
 LOGIN_USER = "login_user:{token}"
 
 # i18n
-PATH_TO_LOCALES = BASE_DIR / "locales"
+PATH_TO_LOCALES = BASE_DIR / "i18n" / "locales"

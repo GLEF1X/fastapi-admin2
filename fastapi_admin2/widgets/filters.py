@@ -30,7 +30,7 @@ class AbstractFilter(Input, abc.ABC):
 
     async def generate_public_filter(self, value: Any) -> PublicFilter:
         return PublicFilter(
-            name=self.context.get("name"),
+            name=self.name,
             operator=self.operator,
             value=value
         )

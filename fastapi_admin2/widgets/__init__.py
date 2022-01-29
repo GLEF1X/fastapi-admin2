@@ -1,6 +1,5 @@
 from typing import Any
 
-from starlette.requests import Request
 from starlette.templating import Jinja2Templates
 
 from fastapi_admin2.i18n.context import get_i18n

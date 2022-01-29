@@ -1,47 +1,45 @@
-from typing import Type, Any
+from typing import Type, Any, List, Dict
 
 from fastapi import APIRouter, Depends, Path
 from jinja2 import TemplateNotFound
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
-from starlette.responses import RedirectResponse
+from starlette.responses import RedirectResponse, Response
 from starlette.status import HTTP_303_SEE_OTHER
 
 from fastapi_admin2.base.entities import ResourceList
-from fastapi_admin2.depends import get_model, get_model_resource, get_resources, get_current_admin
-from fastapi_admin2.dialects.sqla.markers import AsyncSessionDependencyMarker
+from fastapi_admin2.depends import get_orm_model_by_resource_name, get_model_resource, get_resources
+from fastapi_admin2.backends.sqla.markers import AsyncSessionDependencyMarker
 from fastapi_admin2.resources import AbstractModelResource
 from fastapi_admin2.responses import redirect
 from fastapi_admin2.routes.dependencies import ModelListDependencyMarker, DeleteOneDependencyMarker, \
     DeleteManyDependencyMarker
-from fastapi_admin2.stylists.model_list import ModelResourceListStylist
 from fastapi_admin2.template import templates
 
-router = APIRouter(dependencies=[Depends(get_current_admin)])
+router = APIRouter()
 
 
 @router.get("/{resource}/list")
 async def list_view(
         request: Request,
-        resources=Depends(get_resources),
+        resources: List[Dict[str, Any]] = Depends(get_resources),
         model_resource: AbstractModelResource = Depends(get_model_resource),
         resource_name: str = Path(..., alias="resource"),
         page_size: int = 10,
         page_num: int = 1,
-        field_presenter: ModelResourceListStylist = Depends(ModelResourceListStylist),
         resource_list: ResourceList = Depends(ModelListDependencyMarker)
-):
+) -> Response:
     parsed_query_params = await model_resource.parse_query_params(request)
     filters = await model_resource.render_filters(parsed_query_params)
-    rendered_fields = await field_presenter.render_payload_for_resource(resource_list.models)
+    rendered_fields = await model_resource.render_fields(resource_list.models, request)
 
     context = {
         "request": request,
         "resources": resources,
         "fields_label": model_resource.get_field_labels(),
         "row_attributes": rendered_fields.row_attributes,
-        "column_attributes": rendered_fields.column_attributes,
-        "cell_attributes": rendered_fields.cell_attributes,
+        "column_css_attributes": rendered_fields.column_attributes,
+        "cell_css_attributes": rendered_fields.cell_attributes,
         "rendered_values": rendered_fields.rows,
         "filters": filters,
         "resource": resource_name,
@@ -80,7 +78,7 @@ async def update_view(
         id_: str = Path(..., alias="id"),
         model_resource: AbstractModelResource = Depends(get_model_resource),
         resources=Depends(get_resources),
-        model=Depends(get_model),
+        model=Depends(get_orm_model_by_resource_name),
         session: AsyncSession = Depends(AsyncSessionDependencyMarker)
 ):
     async with session.begin():
@@ -146,7 +144,7 @@ async def create(
         resource: str = Path(...),
         resources=Depends(get_resources),
         model_resource: AbstractModelResource = Depends(get_model_resource),
-        model: Type[Any] = Depends(get_model),
+        model: Type[Any] = Depends(get_orm_model_by_resource_name),
         session: AsyncSession = Depends(AsyncSessionDependencyMarker)
 ):
     inputs = await model_resource.render_inputs()

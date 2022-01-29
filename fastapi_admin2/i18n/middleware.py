@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import cast
+from typing import cast, Optional
 
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
@@ -20,12 +20,14 @@ class AbstractI18nMiddleware(BaseHTTPMiddleware, ABC):
     Abstract I18n middleware.
     """
 
-    def __init__(self, app: ASGIApp, i18n: I18nService = I18nService()) -> None:
+    def __init__(self, app: ASGIApp, i18n: Optional[I18nService] = None) -> None:
         """
         Create an instance of middleware
         :param i18n: instance of I18n
         """
         super().__init__(app)
+        if i18n is None:
+            i18n = I18nService()
         self.i18n = i18n
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:

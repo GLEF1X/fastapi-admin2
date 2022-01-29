@@ -1,4 +1,4 @@
-from typing import Optional, Mapping
+from typing import Optional, Mapping, Any
 
 from starlette.requests import Request
 
@@ -32,5 +32,5 @@ class Field:
 
 
 class ComputedField(Field):
-    async def get_value(self, request: Request, obj: Mapping):
+    async def get_value(self, request: Request, obj: Mapping) -> Optional[Any]:
         return obj.get(self.name)
