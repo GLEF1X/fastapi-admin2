@@ -8,8 +8,8 @@ from sqlalchemy.orm import sessionmaker
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
-import resources
-from events import create_on_startup_handler, create_on_shutdown_handler
+from examples.sqlalchemy import resources
+from examples.sqlalchemy.events import create_on_startup_handler, create_on_shutdown_handler
 from examples.sqlalchemy.orm_models import Admin
 from examples.sqlalchemy.routes.admin.home import admin_panel_main_router
 from examples.sqlalchemy.settings import BASE_DIR
