@@ -1,8 +1,7 @@
 from fastapi import HTTPException
 from starlette.requests import Request
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
-
-from fastapi_admin2.template import templates
+from starlette.templating import Jinja2Templates, _TemplateResponse
 
 
 class ServerHTTPException(HTTPException):
@@ -42,7 +41,11 @@ class DatabaseError(Exception):
     """
 
 
-async def server_error_exception(request: Request, exc: HTTPException):
+async def server_error_exception(
+        request: Request,
+        exc: HTTPException,
+        templates: Jinja2Templates
+) -> _TemplateResponse:
     return templates.TemplateResponse(
         "errors/500.html",
         status_code=HTTP_500_INTERNAL_SERVER_ERROR,
@@ -50,19 +53,31 @@ async def server_error_exception(request: Request, exc: HTTPException):
     )
 
 
-async def not_found_error_exception(request: Request, exc: HTTPException):
+async def not_found_error_exception(
+        request: Request,
+        exc: HTTPException,
+        templates: Jinja2Templates
+) -> _TemplateResponse:
     return templates.TemplateResponse(
         "errors/404.html", status_code=exc.status_code, context={"request": request}
     )
 
 
-async def forbidden_error_exception(request: Request, exc: HTTPException):
+async def forbidden_error_exception(
+        request: Request,
+        exc: HTTPException,
+        templates: Jinja2Templates
+) -> _TemplateResponse:
     return templates.TemplateResponse(
         "errors/403.html", status_code=exc.status_code, context={"request": request}
     )
 
 
-async def unauthorized_error_exception(request: Request, exc: HTTPException):
+async def unauthorized_error_exception(
+        request: Request,
+        exc: HTTPException,
+        templates: Jinja2Templates
+) -> _TemplateResponse:
     return templates.TemplateResponse(
         "errors/401.html", status_code=exc.status_code, context={"request": request}
     )

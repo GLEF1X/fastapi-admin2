@@ -7,20 +7,19 @@ from starlette.middleware.base import RequestResponseEndpoint, BaseHTTPMiddlewar
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 from starlette.status import HTTP_303_SEE_OTHER, HTTP_401_UNAUTHORIZED
+from starlette.templating import Jinja2Templates
 
 from fastapi_admin2 import constants
 from fastapi_admin2.base.entities import AbstractAdmin
 from fastapi_admin2.depends import get_resources
-from fastapi_admin2.i18n import lazy_gettext as _
 from fastapi_admin2.providers import Provider
 from fastapi_admin2.providers.security.dependencies import AdminDaoDependencyMarker, EntityNotFound, \
     AdminDaoProto
 from fastapi_admin2.providers.security.dto import InitAdmin, RenewPasswordForm
 from fastapi_admin2.providers.security.password_hashing.protocol import HashVerifyFailedError, \
     PasswordHasherProto
-from fastapi_admin2.template import templates
 from fastapi_admin2.utils.depends import get_dependency_from_request_by_marker
-from fastapi_admin2.utils.file_upload import FileUploader
+from fastapi_admin2.utils.files import FileManager
 
 if TYPE_CHECKING:
     from fastapi_admin2.app import FastAPIAdmin
@@ -40,7 +39,7 @@ class SecurityProvider(Provider):
 
     def __init__(
             self,
-            avatar_uploader: FileUploader,
+            file_manager: FileManager,
             redis: Redis,
             password_hasher: PasswordHasherProto,
             login_path: str = "/login",
@@ -55,10 +54,11 @@ class SecurityProvider(Provider):
         self.login_title_translation_key = login_title_translation_key
         self.login_logo_url = login_logo_url
         self._password_hasher = password_hasher
-        self._avatar_uploader = avatar_uploader
+        self._avatar_uploader = file_manager
         self._redis = redis
 
-    async def login_view(self, request: Request) -> Response:
+    async def login_view(self, request: Request,
+                         templates: Jinja2Templates = Depends(Jinja2Templates)) -> Response:
         return templates.TemplateResponse(
             self.template,
             context={
@@ -84,12 +84,14 @@ class SecurityProvider(Provider):
     async def login(
             self,
             request: Request,
-            admin_dao: AdminDaoProto = Depends(AdminDaoDependencyMarker)
+            admin_dao: AdminDaoProto = Depends(AdminDaoDependencyMarker),
+            templates: Jinja2Templates = Depends(Jinja2Templates)
     ) -> Response:
         form = await request.form()
         username = form.get("username")
         password = form.get("password")
         remember_me = form.get("remember_me")
+
         unauthorized_response = templates.TemplateResponse(
             self.template,
             status_code=HTTP_401_UNAUTHORIZED,
@@ -100,7 +102,7 @@ class SecurityProvider(Provider):
         except EntityNotFound:
             return unauthorized_response
         else:
-            if self._password_hash_is_invalid(admin, password):
+            if self._is_password_hash_is_invalid(admin, password):
                 return unauthorized_response
 
             if self._password_hasher.is_rehashing_required(admin.password):
@@ -113,6 +115,7 @@ class SecurityProvider(Provider):
         else:
             expire = 3600
             response.delete_cookie("remember_me")
+
         token = uuid.uuid4().hex
         response.set_cookie(
             self.access_token_key,
@@ -120,6 +123,7 @@ class SecurityProvider(Provider):
             expires=expire,
             path=request.app.admin_path,
             httponly=True,
+            samesite="Strict"
         )
         await self._redis.set(constants.LOGIN_USER.format(token=token), admin.id, ex=expire)
         return response
@@ -162,7 +166,8 @@ class SecurityProvider(Provider):
     async def init_view(
             self,
             request: Request,
-            user_repository: AdminDaoProto = Depends(AdminDaoDependencyMarker)
+            user_repository: AdminDaoProto = Depends(AdminDaoDependencyMarker),
+            templates: Jinja2Templates = Depends(Jinja2Templates)
     ) -> Response:
         if await user_repository.is_exists_at_least_one_admin():
             return self.redirect_login(request)
@@ -174,7 +179,8 @@ class SecurityProvider(Provider):
             init_admin: InitAdmin = Depends(InitAdmin),
             admin_dao: AdminDaoProto = Depends(
                 AdminDaoDependencyMarker
-            )
+            ),
+            templates: Jinja2Templates = Depends(Jinja2Templates)
     ):
         if await admin_dao.is_exists_at_least_one_admin():
             return self.redirect_login(request)
@@ -204,6 +210,7 @@ class SecurityProvider(Provider):
             self,
             request: Request,
             resources=Depends(get_resources),
+            templates: Jinja2Templates = Depends(Jinja2Templates)
     ) -> Response:
         return templates.TemplateResponse(
             "providers/login/renew_password.html",
@@ -219,10 +226,11 @@ class SecurityProvider(Provider):
             renew_password_form: RenewPasswordForm,
             admin: AbstractAdmin = Depends(get_current_admin),
             resources: List[dict] = Depends(get_resources),
-            admin_dao: AdminDaoProto = Depends(AdminDaoDependencyMarker)
+            admin_dao: AdminDaoProto = Depends(AdminDaoDependencyMarker),
+            templates: Jinja2Templates = Depends(Jinja2Templates)
     ) -> Response:
         error = None
-        if self._password_hash_is_invalid(admin, renew_password_form.old_password):
+        if self._is_password_hash_is_invalid(admin, renew_password_form.old_password):
             error = _("old_password_error")
 
         if renew_password_form.new_password != renew_password_form.re_new_password:
@@ -237,7 +245,7 @@ class SecurityProvider(Provider):
         await admin_dao.update_admin({"id": admin.id}, password=renew_password_form.new_password)
         return await self.logout(request)
 
-    def _password_hash_is_invalid(
+    def _is_password_hash_is_invalid(
             self,
             admin: AbstractAdmin,
             password: str

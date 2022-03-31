@@ -6,7 +6,7 @@ from typing import Any, List, Optional, Tuple, Type, Callable
 from starlette.datastructures import UploadFile
 
 from fastapi_admin2 import constants
-from fastapi_admin2.utils.file_upload import FileUploader
+from fastapi_admin2.utils.files import FileManager
 from fastapi_admin2.widgets import Widget
 
 
@@ -222,7 +222,7 @@ class File(Input):
 
     def __init__(
             self,
-            upload: FileUploader,
+            upload: FileManager,
             default: Any = None,
             null: bool = False,
             disabled: bool = False,

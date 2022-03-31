@@ -8,7 +8,6 @@ from starlette.requests import Request
 
 from fastapi_admin2.enums import HTTPMethod
 from fastapi_admin2.exceptions import FieldNotFoundError
-from fastapi_admin2.i18n import gettext as _
 from fastapi_admin2.resources.action import ToolbarAction, Action
 from fastapi_admin2.resources.base import Resource
 from fastapi_admin2.resources.field import Field, ComputedField

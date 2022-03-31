@@ -16,7 +16,7 @@ from examples.sqlalchemy.settings import BASE_DIR
 from fastapi_admin2.app import FastAPIAdmin
 from fastapi_admin2.i18n import I18nMiddleware
 from fastapi_admin2.providers.security.password_hashing.argon2_cffi import Argon2PasswordHasher
-from fastapi_admin2.utils.file_upload import OnPremiseFileUploader, StaticFileUploader
+from fastapi_admin2.utils.files import OnPremiseFileManager, StaticFilesManager
 from fastapi_admin2.backends.sqla import SQLAlchemyBackend
 from fastapi_admin2.providers.security import SecurityProvider
 
@@ -76,8 +76,8 @@ class ApplicationBuilder:
             providers=[
                 SecurityProvider(
                     login_logo_url="https://preview.tabler.io/static/logo.svg",
-                    avatar_uploader=StaticFileUploader(
-                        OnPremiseFileUploader(uploads_dir=BASE_DIR / "static" / "uploads")
+                    file_manager=StaticFilesManager(
+                        OnPremiseFileManager(uploads_dir=BASE_DIR / "static" / "uploads")
                     ),
                     redis=redis,
                     password_hasher=Argon2PasswordHasher()

@@ -1,0 +1,2 @@
+class UnableToExtractLocaleFromRequestError(Exception):
+    pass

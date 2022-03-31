@@ -12,14 +12,12 @@ DEFAULT_MAX_FILE_SIZE = 1024 ** 3
 Link = NewType("Link", str)
 
 
-class FileUploader(Protocol):
-
-    async def save_file(self, filename: str, content: bytes) -> Union[Link, os.PathLike]: ...
+class FileManager(Protocol):
 
     async def upload(self, file: UploadFile) -> Union[Link, os.PathLike]: ...
 
 
-class OnPremiseFileUploader:
+class OnPremiseFileManager:
     def __init__(
             self,
             uploads_dir: os.PathLike,
@@ -45,9 +43,9 @@ class OnPremiseFileUploader:
         if self._file_extension_is_not_allowed(filename):
             raise FileExtNotAllowed(f"File ext is not allowed of {self._allow_extensions}")
 
-        return await self.save_file(filename, content)  # type: ignore
+        return await self._save_file(filename, content)  # type: ignore
 
-    async def save_file(self, filename: str, content: bytes) -> Union[Link, os.PathLike]:
+    async def _save_file(self, filename: str, content: bytes) -> os.PathLike:
         """
         Save file to upload directory / filename
 
@@ -66,14 +64,11 @@ class OnPremiseFileUploader:
         return all(not filename.endswith(ext) for ext in self._allow_extensions)
 
 
-class StaticFileUploader:
+class StaticFilesManager:
 
-    def __init__(self, file_uploader: FileUploader, static_path_prefix: str = "/static/uploads"):
+    def __init__(self, file_uploader: FileManager, static_path_prefix: str = "/static/uploads"):
         self._file_uploader = file_uploader
         self._static_path_prefix = static_path_prefix
-
-    async def save_file(self, filename: str, content: bytes) -> Union[Link, os.PathLike]:
-        return await self._file_uploader.save_file(filename, content)
 
     async def upload(self, file: UploadFile) -> Union[Link, os.PathLike]:
         await self._file_uploader.upload(file)

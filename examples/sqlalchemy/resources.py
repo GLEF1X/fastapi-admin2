@@ -16,7 +16,7 @@ from fastapi_admin2.backends.sqla.filters import full_text_search_op
 from fastapi_admin2.backends.sqla.model_resource import Model
 from fastapi_admin2.enums import HTTPMethod
 from fastapi_admin2.resources import Action, Dropdown, Field, Link, ToolbarAction
-from fastapi_admin2.utils.file_upload import OnPremiseFileUploader, StaticFileUploader
+from fastapi_admin2.utils.files import OnPremiseFileManager, StaticFilesManager
 from fastapi_admin2.widgets import displays, inputs
 
 
@@ -63,8 +63,8 @@ class AdminResource(Model):
             name="avatar",
             label="Аватарка",
             display=displays.Image(width="40"),
-            input_=inputs.Image(null=True, upload=StaticFileUploader(
-                OnPremiseFileUploader(uploads_dir=BASE_DIR / "static" / "uploads")
+            input_=inputs.Image(null=True, upload=StaticFilesManager(
+                OnPremiseFileManager(uploads_dir=BASE_DIR / "static" / "uploads")
             )),
         ),
         Field(

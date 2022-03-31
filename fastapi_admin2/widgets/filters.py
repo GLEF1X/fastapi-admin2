@@ -6,7 +6,6 @@ from typing import Any, List, Optional, Tuple, Type
 import pendulum
 
 from fastapi_admin2 import constants
-from fastapi_admin2.i18n.context import lazy_gettext as _
 from fastapi_admin2.widgets.inputs import Input
 
 

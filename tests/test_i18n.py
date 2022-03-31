@@ -25,7 +25,7 @@ class TestI18nCore:
         assert set(i18n.available_locales) == {"en", "uk"}
 
     def test_reload(self, i18n: I18nService):
-        i18n.reload()
+        i18n.reload_locales()
         assert set(i18n.available_locales) == {"en", "uk"}
 
     def test_current_locale(self, i18n: I18nService):

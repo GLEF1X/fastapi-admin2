@@ -2,7 +2,8 @@
 name = "fastapi-admin2"
 version = "0.0.1a1"
 description = ""
-authors = ["Gleb Garanin <glebgar567@gmail.com>"]
+authors = ["Glib Garanin aka GLEF1X"]
+license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -15,7 +16,6 @@ python-multipart = "*"
 pendulum = "2.1.2"
 argon2-cffi = "^21.3.0"
 orjson = "^3.6.6"
-
 
 [tool.poetry.dev-dependencies]
 # lint
@@ -41,11 +41,10 @@ sqlalchemy2-stubs = "0.0.2-alpha.19"
 types-aiofiles = "*"
 
 # subdeps of orm dialects
-asyncpg = "^0.25.0"
+asyncpg = { git = "https://github.com/MagicStack/asyncpg", branch = "master"}
 
 # example
 dynaconf = "^3.1.7"
-
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

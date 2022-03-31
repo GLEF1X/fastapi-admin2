@@ -37,7 +37,7 @@ async def get_model_resource(
 
 def get_resources(request: Request) -> List[Dict[str, Any]]:
     resources = request.app.resources
-    r = _get_resources(resources) # TODO replace
+    r = _get_resources(resources)  # TODO replace
     print(r)
     return r
 
