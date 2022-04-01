@@ -9,7 +9,7 @@ from starlette.status import HTTP_303_SEE_OTHER, HTTP_404_NOT_FOUND
 from examples.sqlalchemy.orm_models import Config
 from fastapi_admin2.depends import get_resources
 from fastapi_admin2.backends.sqla.markers import AsyncSessionDependencyMarker
-from fastapi_admin2.template import templates
+from fastapi_admin2.templating import templates
 
 admin_panel_main_router = APIRouter(include_in_schema=False)
 

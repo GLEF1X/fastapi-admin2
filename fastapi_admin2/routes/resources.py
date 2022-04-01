@@ -14,7 +14,6 @@ from fastapi_admin2.resources import AbstractModelResource
 from fastapi_admin2.responses import redirect
 from fastapi_admin2.routes.dependencies import ModelListDependencyMarker, DeleteOneDependencyMarker, \
     DeleteManyDependencyMarker
-from fastapi_admin2.template import templates
 
 router = APIRouter()
 

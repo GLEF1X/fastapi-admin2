@@ -21,7 +21,7 @@ from .resources import AbstractModelResource as ModelResource
 from .resources import Dropdown
 from .resources.base import Resource
 from .routes import resources
-from .template import create_jinja2_templates
+from .templating import JinjaTemplates
 
 
 class ORMBackend(Protocol):
@@ -33,39 +33,44 @@ ORMModel = Any
 
 class FastAPIAdmin(FastAPI):
 
-    def __init__(self, *,
-                 backend: ORMBackend,
-                 jinja2_templates_factory: Optional[Callable[..., Jinja2Templates]] = None,
-                 login_logo_url: Optional[str] = None,
-                 add_custom_exception_handlers: bool = True,
-                 logo_url: Optional[str] = None,
-                 admin_path: str = "/admin",
-                 providers: Optional[List[Provider]] = None,
-                 favicon_url: Optional[str] = None,
-                 i18n_middleware: Optional[Type[AbstractI18nMiddleware]] = None,
-                 debug: bool = False, routes: Optional[List[BaseRoute]] = None,
-                 title: str = "FastAPI", description: str = "", version: str = "0.1.0",
-                 openapi_url: Optional[str] = "/openapi.json",
-                 openapi_tags: Optional[List[Dict[str, Any]]] = None,
-                 servers: Optional[List[Dict[str, Union[str, Any]]]] = None,
-                 dependencies: Optional[Sequence[Depends]] = None,
-                 default_response_class: Type[Response] = Default(JSONResponse),
-                 docs_url: Optional[str] = "/docs", redoc_url: Optional[str] = "/redoc",
-                 swagger_ui_oauth2_redirect_url: Optional[str] = "/docs/oauth2-redirect",
-                 swagger_ui_init_oauth: Optional[Dict[str, Any]] = None,
-                 middleware: Optional[Sequence[Middleware]] = None,
-                 exception_handlers: Optional[Dict[
-                     Union[int, Type[Exception]],
-                     Callable[[Request, Any], Coroutine[Any, Any, Response]],
-                 ]] = None,
-                 on_startup: Optional[Sequence[Callable[[], Any]]] = None,
-                 on_shutdown: Optional[Sequence[Callable[[], Any]]] = None,
-                 terms_of_service: Optional[str] = None, contact: Optional[Dict[str, Union[str, Any]]] = None,
-                 license_info: Optional[Dict[str, Union[str, Any]]] = None, openapi_prefix: str = "",
-                 root_path: str = "", root_path_in_servers: bool = True,
-                 responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
-                 callbacks: Optional[List[BaseRoute]] = None, deprecated: Optional[bool] = None,
-                 include_in_schema: bool = True, **extra: Any) -> None:
+    def __init__(
+            self, *,
+            backend: ORMBackend,
+            login_logo_url: Optional[str] = None,
+            add_custom_exception_handlers: bool = True,
+            logo_url: Optional[str] = None,
+            admin_path: str = "/admin",
+            providers: Optional[List[Provider]] = None,
+            favicon_url: Optional[str] = None,
+            i18n_middleware: Optional[Type[AbstractI18nMiddleware]] = None,
+            debug: bool = False, routes: Optional[List[BaseRoute]] = None,
+            title: str = "FastAPI",
+            description: str = "",
+            version: str = "0.1.0",
+            openapi_url: Optional[str] = "/openapi.json",
+            openapi_tags: Optional[List[Dict[str, Any]]] = None,
+            servers: Optional[List[Dict[str, Union[str, Any]]]] = None,
+            dependencies: Optional[Sequence[Depends]] = None,
+            default_response_class: Type[Response] = Default(JSONResponse),
+            docs_url: Optional[str] = "/docs",
+            redoc_url: Optional[str] = "/redoc",
+            swagger_ui_oauth2_redirect_url: Optional[str] = "/docs/oauth2-redirect",
+            swagger_ui_init_oauth: Optional[Dict[str, Any]] = None,
+            middleware: Optional[Sequence[Middleware]] = None,
+            exception_handlers: Optional[Dict[
+                Union[int, Type[Exception]],
+                Callable[[Request, Any], Coroutine[Any, Any, Response]],
+            ]] = None,
+            on_startup: Optional[Sequence[Callable[[], Any]]] = None,
+            on_shutdown: Optional[Sequence[Callable[[], Any]]] = None,
+            terms_of_service: Optional[str] = None, contact: Optional[Dict[str, Union[str, Any]]] = None,
+            license_info: Optional[Dict[str, Union[str, Any]]] = None,
+            openapi_prefix: str = "",
+            root_path: str = "", root_path_in_servers: bool = True,
+            responses: Optional[Dict[Union[int, str], Dict[str, Any]]] = None,
+            callbacks: Optional[List[BaseRoute]] = None, deprecated: Optional[bool] = None,
+            include_in_schema: bool = True, **extra: Any
+    ) -> None:
         super().__init__(
             debug=debug, routes=routes, title=title, description=description, version=version,
             openapi_url=openapi_url, openapi_tags=openapi_tags, servers=servers,
@@ -82,22 +87,19 @@ class FastAPIAdmin(FastAPI):
 
         self.admin_path = admin_path
         self.login_logo_url = login_logo_url
-
         self.admin_path = admin_path
+
         self.logo_url = logo_url
         self.favicon_url = favicon_url
-
-        if jinja2_templates_factory is not None:
-            self._templates = jinja2_templates_factory()
-        else:
-            self._templates = create_jinja2_templates()
-
-        self.dependency_overrides[Jinja2Templates] = lambda: self._templates
 
         self.add_middleware(i18n_middleware)
         self.language_switch = True
 
+        self.templates = JinjaTemplates()
+        self.dependency_overrides[JinjaTemplates] = lambda: self.templates
+
         self._orm_backend = backend
+        self._orm_backend.configure(self)
 
         self.resources: List[Type[Resource]] = []
         self.model_resources: Dict[Type[ORMModel], Type[Resource]] = {}
@@ -111,12 +113,11 @@ class FastAPIAdmin(FastAPI):
             }
             for http_status, h in exception_handlers.items():
                 self.add_exception_handler(
-                    http_status, functools.partial(h, templates=self._templates)
+                    http_status, functools.partial(h, templates=self.templates)
                 )
 
         self._register_providers(providers)
         self.include_router(resources.router)
-        self._orm_backend.configure(self)
 
     def _register_providers(self, providers: Optional[List[Provider]] = None):
         for p in providers or []:

@@ -95,7 +95,7 @@ class SecurityProvider(Provider):
         unauthorized_response = templates.TemplateResponse(
             self.template,
             status_code=HTTP_401_UNAUTHORIZED,
-            context={"request": request, "error": _("login_failed")},
+            context={"request": request, "error": request.state.t("login_failed")},
         )
         try:
             admin = await admin_dao.get_one_admin_by_filters(username=username)
@@ -188,7 +188,7 @@ class SecurityProvider(Provider):
         if init_admin.password != init_admin.confirm_password:
             return templates.TemplateResponse(
                 "init.html",
-                context={"request": request, "error": _("confirm_password_different")},
+                context={"request": request, "error": request.state.t("confirm_password_different")},
             )
 
         path_to_avatar_image = await self._avatar_uploader.upload(init_admin.avatar)
@@ -231,10 +231,10 @@ class SecurityProvider(Provider):
     ) -> Response:
         error = None
         if self._is_password_hash_is_invalid(admin, renew_password_form.old_password):
-            error = _("old_password_error")
+            error = request.state.t("old_password_error")
 
         if renew_password_form.new_password != renew_password_form.re_new_password:
-            error = _("new_password_different")
+            error = request.state.t("new_password_different")
 
         if error:
             return templates.TemplateResponse(

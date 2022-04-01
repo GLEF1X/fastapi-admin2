@@ -4,7 +4,7 @@ from typing import Dict, Optional, Tuple
 
 from fastapi_admin2.constants import PATH_TO_LOCALES
 from fastapi_admin2.i18n.lazy_proxy import LazyProxy
-from fastapi_admin2.template import templates
+from fastapi_admin2.templating import templates
 
 
 class I18nService:

@@ -10,7 +10,7 @@ python = "^3.8"
 babel = "^2.9.1"
 aiofiles = "0.8.0"
 aioredis = "^2.0.1"
-fastapi = "^0.73.0"
+fastapi = "^0.75.0"
 jinja2 = "*"
 python-multipart = "*"
 pendulum = "2.1.2"
@@ -27,17 +27,17 @@ pylint = "*"
 # example
 asyncmy = "*"
 python-dotenv = "*"
-pytest = "^6.2.5"
-pytest-asyncio = "^0.17.2"
+pytest = "^7.1.1"
+pytest-asyncio = "^0.18.3"
 gunicorn = "^20.1.0"
-uvicorn = { version = "0.17.1", extras = ["standard"] }
+uvicorn = { version = "0.17.6", extras = ["standard"] }
 
 coverage = "^6.2"
 
 # orm dialects
-tortoise-orm = "0.18.1"
+tortoise-orm = "0.19.0"
 SQLAlchemy = "^1.4.31"
-sqlalchemy2-stubs = "0.0.2-alpha.19"
+sqlalchemy2-stubs = "0.0.2a21"
 types-aiofiles = "*"
 
 # subdeps of orm dialects
