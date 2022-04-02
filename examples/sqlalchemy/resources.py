@@ -21,12 +21,14 @@ from fastapi_admin2.widgets import displays, inputs
 
 
 def register(app: FastAPIAdmin):
-    app.register_resources(
+    resources = [
         Dashboard,
         AdminResource,
         ConfigResource,
         Content,
-    )
+    ]
+    for r in resources:
+        app.register_resource(r)
 
 
 class Dashboard(Link):
@@ -60,10 +62,10 @@ class AdminResource(Model):
         ),
         Field(name="email", label="Email", input_=inputs.Email()),
         Field(
-            name="avatar",
+            name="profile_pic",
             label="Аватарка",
             display=displays.Image(width="40"),
-            input_=inputs.Image(null=True, upload=StaticFilesManager(
+            input_=inputs.Image(null=True, file_manager=StaticFilesManager(
                 OnPremiseFileManager(uploads_dir=BASE_DIR / "static" / "uploads")
             )),
         ),

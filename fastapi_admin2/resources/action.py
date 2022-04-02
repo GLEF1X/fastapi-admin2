@@ -1,4 +1,4 @@
-from typing import Optional, Any
+from typing import Optional, Any, Dict
 
 from pydantic import BaseModel, validator
 
@@ -13,7 +13,7 @@ class Action(BaseModel):
     ajax: bool = True
 
     @validator("ajax")
-    def ajax_validate(cls, v: bool, values: dict, **kwargs: Any):
+    def validate_ajax(cls, v: bool, values: Dict[str, Any], **kwargs: Any):
         if not v and values["method"] != HTTPMethod.GET:
             raise ValueError("ajax is False only available when method is Method.GET")
 

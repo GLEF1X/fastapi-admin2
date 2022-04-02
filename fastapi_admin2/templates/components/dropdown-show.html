@@ -1,5 +1,11 @@
-{% if resource_label in resource.resources|map(attribute='label') %}
-    show
-{% elif resource_label not in resource.resources|map(attribute='label') and resource.expand %}
-    show
-{% endif %}
+{% for r in resource.resources %}
+    {% if resource_label == r.label %}
+        active
+    {% endif %}
+{% else %}
+    {% if resource.expand %}
+        show
+    {% endif %}
+{% endfor %}
+
+

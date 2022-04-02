@@ -17,7 +17,7 @@ class ForeignKey(BaseForeignKeyInput):
 
 
 class ManyToMany(BaseManyToManyInput):
-    template = "widgets/inputs/many_to_many.html"
+    template_name = "widgets/inputs/many_to_many.html"
 
     async def render(self, value: Any):
         options = await self.get_options()

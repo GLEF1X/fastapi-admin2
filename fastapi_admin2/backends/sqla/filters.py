@@ -4,13 +4,13 @@ from typing import Tuple
 
 import pendulum
 from sqlalchemy import Column, between as sa_between
-from sqlalchemy.sql import ClauseElement
+from sqlalchemy.sql import ClauseElement, Select
 from sqlalchemy.sql.elements import BinaryExpression
 from sqlalchemy.sql.operators import is_, ilike_op, eq as equals, like_op, match_op
 
 from fastapi_admin2.backends.sqla.toolings import parse_like_term
 from fastapi_admin2.widgets.filters import BaseSearchFilter, BaseDateRangeFilter, BaseDatetimeRangeFilter, \
-    BaseEnumFilter, BaseBooleanFilter, PublicFilter
+    BaseEnumFilter, BaseBooleanFilter
 
 full_text_search_op = match_op
 
@@ -46,6 +46,14 @@ class Search(BaseSearchFilter):
             full_text_search_config = {}
 
         self._full_text_search_config = full_text_search_config
+
+    def utilize(self, query: Select, value: str) -> Select:
+        if self._sqlalchemy_operator in {ilike_op, like_op}:
+            value = parse_like_term(value)
+
+        return query.where()
+
+
 
     @property
     def operator(self) -> Any:

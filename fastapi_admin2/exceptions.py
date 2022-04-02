@@ -1,7 +1,7 @@
+from typing import Optional
+
 from fastapi import HTTPException
-from starlette.requests import Request
 from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
-from starlette.templating import Jinja2Templates, _TemplateResponse
 
 
 class ServerHTTPException(HTTPException):
@@ -41,43 +41,23 @@ class DatabaseError(Exception):
     """
 
 
-async def server_error_exception(
-        request: Request,
-        exc: HTTPException,
-        templates: Jinja2Templates
-) -> _TemplateResponse:
-    return templates.TemplateResponse(
-        "errors/500.html",
-        status_code=HTTP_500_INTERNAL_SERVER_ERROR,
-        context={"request": request},
-    )
+class RequiredThirdPartyLibNotInstalled(Exception):
+    def __init__(self, lib_name: str, *, thing_that_cant_work_without_lib: str,
+                 can_be_installed_with_ext: Optional[str] = None):
+        self.thing_that_cant_work_without_lib = thing_that_cant_work_without_lib
+        self.can_be_installed_with_ext = can_be_installed_with_ext
+        self.lib_name = lib_name
+
+        if not self.can_be_installed_with_ext:
+            self.can_be_installed_with_ext = ""
+        else:
+            self.can_be_installed_with_ext = f"[{can_be_installed_with_ext}]"
+
+        super().__init__(
+            f"{self.thing_that_cant_work_without_lib} can be used only when Babel installed\n"
+            f"Just install {self.lib_name} (`pip install {self.lib_name}`) "
+            f"or fastapi-admin2 with {self.thing_that_cant_work_without_lib} support"
+            f" (`pip install fastapi-admin2{self.can_be_installed_with_ext}`)"
+        )
 
 
-async def not_found_error_exception(
-        request: Request,
-        exc: HTTPException,
-        templates: Jinja2Templates
-) -> _TemplateResponse:
-    return templates.TemplateResponse(
-        "errors/404.html", status_code=exc.status_code, context={"request": request}
-    )
-
-
-async def forbidden_error_exception(
-        request: Request,
-        exc: HTTPException,
-        templates: Jinja2Templates
-) -> _TemplateResponse:
-    return templates.TemplateResponse(
-        "errors/403.html", status_code=exc.status_code, context={"request": request}
-    )
-
-
-async def unauthorized_error_exception(
-        request: Request,
-        exc: HTTPException,
-        templates: Jinja2Templates
-) -> _TemplateResponse:
-    return templates.TemplateResponse(
-        "errors/401.html", status_code=exc.status_code, context={"request": request}
-    )

@@ -15,7 +15,7 @@ class TestOnPremiseFileUploader:
         uploader = OnPremiseFileManager(uploads_dir=tmpdir)
         upload_file = UploadFile(filename="test.txt", file=io.BytesIO(b"test"))
 
-        await uploader.upload(upload_file)
+        await uploader.download_file(upload_file)
 
         assert (tmpdir / "test.txt").isfile()
         assert str((tmpdir / "test.txt").read()) == "test"
@@ -24,7 +24,7 @@ class TestOnPremiseFileUploader:
         uploader = OnPremiseFileManager(uploads_dir=tmpdir, allow_extensions=["jpeg"])
         upload_file = UploadFile(filename="test.jpeg", file=io.BytesIO(b"test"))
 
-        await uploader.upload(upload_file)
+        await uploader.download_file(upload_file)
 
         assert (tmpdir / "test.jpeg").isfile()
         assert str((tmpdir / "test.jpeg").read()) == "test"
@@ -34,7 +34,7 @@ class TestOnPremiseFileUploader:
         upload_file = UploadFile(filename="test.txt", file=io.BytesIO(b"test"))
 
         with pytest.raises(FileExtNotAllowed):
-            await uploader.upload(upload_file)
+            await uploader.download_file(upload_file)
 
     async def test_save_file(self, tmpdir: py.path.local):
         uploader = OnPremiseFileManager(uploads_dir=tmpdir)

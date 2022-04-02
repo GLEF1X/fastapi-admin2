@@ -24,8 +24,8 @@ T = TypeVar("T")
 class RenderedFields:
     rows: List[List[Any]]  # TODO rename to human-readable
     row_attributes: Iterable[dict]
-    column_attributes: Iterable[dict]
-    cell_attributes: Iterable[Iterable[dict]]
+    column_css_attributes: Iterable[dict]
+    cell_css_attributes: Iterable[Iterable[dict]]
 
 
 class ColumnToFieldConverter(abc.ABC, Generic[T]):
@@ -103,12 +103,12 @@ class AbstractModelResource(Resource, abc.ABC):
 
         return model_resource
 
-    async def render_fields(self, values: Sequence[Any], request: Request) -> RenderedFields:
+    async def render_fields(self, orm_models: Sequence[Any], request: Request) -> RenderedFields:
         result = await asyncio.gather(
-            self._generate_row_mappings(values, request),
-            self._generate_css_attributes_for_rows(values, request),
+            self._generate_row_mappings(orm_models, request),
+            self._generate_css_attributes_for_rows(orm_models, request),
             self._generate_css_attributes_for_columns(request),
-            self._generate_css_for_cells(values, request)
+            self._generate_css_for_cells(orm_models, request)
         )
         return RenderedFields(*result)
 
@@ -135,9 +135,9 @@ class AbstractModelResource(Resource, abc.ABC):
             result.append(cell_css_attributes)
         return result
 
-    async def _generate_row_mappings(self, values: Sequence[Any], request: Request):
+    async def _generate_row_mappings(self, orm_models: Sequence[Any], request: Request):
         result = []
-        for orm_model_instance in values:
+        for orm_model_instance in orm_models:
             row = []
             for field in self.display_fields:
                 if isinstance(field, ComputedField):
@@ -145,12 +145,12 @@ class AbstractModelResource(Resource, abc.ABC):
                 else:
                     field_value = getattr(orm_model_instance, field.name, None)
 
-                row.append(await field.display.render(field_value))
+                row.append(await field.display.render(request, field_value))
 
             result.append(row)
         return result
 
-    async def render_inputs(self, obj: Optional[Any] = None) -> List[str]:
+    async def render_inputs(self, request: Request, obj: Optional[Any] = None) -> List[str]:
         rendered_inputs: List[str] = []
 
         for field in self.input_fields:
@@ -160,7 +160,7 @@ class AbstractModelResource(Resource, abc.ABC):
             if isinstance(input_, inputs.File):
                 self.enctype = "multipart/form-data"
             name = input_.context.get("name")
-            rendered_inputs.append(await input_.render(getattr(obj, name, None)))
+            rendered_inputs.append(await input_.render(request, getattr(obj, name, None)))
 
         return rendered_inputs
 
@@ -174,10 +174,10 @@ class AbstractModelResource(Resource, abc.ABC):
                     raise KeyError
             except KeyError:
                 continue
-            params[filter_.name] = await filter_.parse_value(matched_filter_value)
+            params[filter_.name] = await filter_.parse(matched_filter_value)
         return params
 
-    async def render_filters(self, values: Optional[Dict[str, Any]] = None) -> List[str]:
+    async def render_filters(self, request: Request, values: Optional[Dict[str, Any]] = None) -> List[str]:
         if not values:
             values = {}
         rendered_filters: List[str] = []
@@ -186,7 +186,7 @@ class AbstractModelResource(Resource, abc.ABC):
                 filter_ = self._default_filter(name=filter_, label=filter_.title())
 
             value = values.get(filter_.name)
-            rendered_filters.append(await filter_.render(value))
+            rendered_filters.append(await filter_.render(request, value))
         return rendered_filters
 
     def get_field_labels(self, display: bool = True) -> List[str]:
@@ -215,7 +215,7 @@ class AbstractModelResource(Resource, abc.ABC):
     async def get_toolbar_actions(self, request: Request) -> List[ToolbarAction]:
         return [
             ToolbarAction(
-                label=_("create"),
+                label=request.state.t("create"),
                 icon="fas fa-plus",
                 name="create",
                 method=HTTPMethod.GET,
@@ -227,14 +227,14 @@ class AbstractModelResource(Resource, abc.ABC):
     async def get_actions(self, request: Request) -> List[Action]:
         return [
             Action(
-                label=_("update"),
+                label=request.state.t("update"),
                 icon="ti ti-edit",
                 name="update",
                 method=HTTPMethod.GET,
                 ajax=False
             ),
             Action(
-                label=_("delete"),
+                label=request.state.t("delete"),
                 icon="ti ti-trash",
                 name="delete",
                 method=HTTPMethod.DELETE
@@ -244,7 +244,7 @@ class AbstractModelResource(Resource, abc.ABC):
     async def get_bulk_actions(self, request: Request) -> List[Action]:
         return [
             Action(
-                label=_("delete_selected"),
+                label=request.state.t("delete_selected"),
                 icon="ti ti-trash",
                 name="delete",
                 method=HTTPMethod.DELETE,

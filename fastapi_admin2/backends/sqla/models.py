@@ -64,4 +64,4 @@ class SqlalchemyAdminModel(Base):
     id = Column(BIGINT(), Identity(always=True, cache=10), primary_key=True)
     username = Column(VARCHAR(50), unique=True)
     password = Column(VARCHAR(200), nullable=False)
-    avatar = Column(VARCHAR(200), nullable=True)
+    profile_pic = Column(VARCHAR(200), nullable=True)

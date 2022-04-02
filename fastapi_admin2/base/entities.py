@@ -7,7 +7,7 @@ class AbstractAdmin:
     id: int
     username: str
     password: str
-    avatar: str
+    profile_pic: str
 
 
 @dataclass

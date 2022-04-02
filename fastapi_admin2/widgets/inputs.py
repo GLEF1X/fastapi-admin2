@@ -4,6 +4,7 @@ from enum import Enum as EnumCLS
 from typing import Any, List, Optional, Tuple, Type, Callable
 
 from starlette.datastructures import UploadFile
+from starlette.requests import Request
 
 from fastapi_admin2 import constants
 from fastapi_admin2.utils.files import FileManager
@@ -11,27 +12,35 @@ from fastapi_admin2.widgets import Widget
 
 
 class Input(Widget):
-    template = "widgets/inputs/input.html"
+    template_name = "widgets/inputs/input.html"
 
     def __init__(
-            self, help_text: Optional[str] = None, default: Any = None, null: bool = False, **context
+            self,
+            *validators: Callable[..., bool],
+            help_text: Optional[str] = None,
+            default: Any = None,
+            null: bool = False,
+            **context: Any
     ):
         super().__init__(null=null, help_text=help_text, **context)
         self.default = default
+        self.validators = validators
 
-    async def parse_value(self, value: Any):
+    async def parse(self, value: Any):
         """
         Parse value from frontend
 
         :param value:
         :return:
         """
+
         return value
 
-    async def render(self, value: Any) -> str:
+    async def render(self, request: Request, value: Any) -> str:
         if value is None:
             value = self.default
-        return await super().render(value)
+
+        return await super().render(request, value)
 
 
 class DisplayOnly(Input):
@@ -41,7 +50,7 @@ class DisplayOnly(Input):
 
 
 class Text(Input):
-    input_type: Optional[str] = "text"
+    input_type = "text"
 
     def __init__(
             self,
@@ -64,7 +73,7 @@ class Text(Input):
 
 
 class Select(Input):
-    template = "widgets/inputs/select.html"
+    template_name = "widgets/inputs/select.html"
 
     def __init__(
             self,
@@ -85,10 +94,10 @@ class Select(Input):
         :return: list of tuple with display and value
         """
 
-    async def render(self, value: Any) -> str:
+    async def render(self, request: Request, value: Any) -> str:
         options = await self.get_options()
         self.context.update(options=options)
-        return await super(Select, self).render(value)
+        return await super(Select, self).render(request, value)
 
 
 class BaseForeignKeyInput(Select, abc.ABC):
@@ -105,7 +114,7 @@ class BaseForeignKeyInput(Select, abc.ABC):
 
 
 class BaseManyToManyInput(BaseForeignKeyInput, abc.ABC):
-    template = "widgets/inputs/many_to_many.html"
+    template_name = "widgets/inputs/many_to_many.html"
 
 
 class Enum(Select):
@@ -122,7 +131,7 @@ class Enum(Select):
         self.enum = enum
         self.enum_type = enum_type
 
-    async def parse_value(self, value: Any):
+    async def parse(self, value: Any):
         return self.enum(self.enum_type(value))
 
     async def get_options(self):
@@ -137,7 +146,7 @@ class Email(Text):
 
 
 class Json(Input):
-    template = "widgets/inputs/json.html"
+    template_name = "widgets/inputs/json.html"
 
     def __init__(
             self,
@@ -157,24 +166,24 @@ class Json(Input):
         self.context.update(options=options)
         self._dumper = dumper
 
-    async def render(self, value: Any):
+    async def render(self, request: Request, value: Any):
         if value:
             value = self._dumper(value)
-        return await super().render(value)
+        return await super().render(request, value)
 
 
 class TextArea(Text):
-    template = "widgets/inputs/textarea.html"
+    template_name = "widgets/inputs/textarea.html"
     input_type = "textarea"
 
 
 class Editor(Text):
-    template = "widgets/inputs/editor.html"
+    template_name = "widgets/inputs/editor.html"
 
 
 class DateTime(Text):
     input_type = "datetime"
-    template = "widgets/inputs/datetime.html"
+    template_name = "widgets/inputs/datetime.html"
 
     def __init__(
             self,
@@ -222,7 +231,7 @@ class File(Input):
 
     def __init__(
             self,
-            upload: FileManager,
+            file_manager: FileManager,
             default: Any = None,
             null: bool = False,
             disabled: bool = False,
@@ -235,21 +244,21 @@ class File(Input):
             disabled=disabled,
             help_text=help_text,
         )
-        self.upload = upload
+        self._file_manager = file_manager
 
-    async def parse_value(self, value: Optional[UploadFile]):
+    async def parse(self, value: Optional[UploadFile]):
         if value and value.filename:
-            return await self.upload.upload(value)
+            return await self._file_manager.download_file(value)
         return None
 
 
 class Image(File):
-    template = "widgets/inputs/image.html"
+    template_name = "widgets/inputs/image.html"
     input_type = "file"
 
 
 class Radio(Select):
-    template = "widgets/inputs/radio.html"
+    template_name = "widgets/inputs/radio.html"
 
     def __init__(
             self,
@@ -266,13 +275,13 @@ class Radio(Select):
 
 
 class RadioEnum(Enum):
-    template = "widgets/inputs/radio.html"
+    template_name = "widgets/inputs/radio.html"
 
 
 class Switch(Input):
-    template = "widgets/inputs/switch.html"
+    template_name = "widgets/inputs/switch.html"
 
-    async def parse_value(self, value: str):
+    async def parse(self, value: str):
         if value == "on":
             return True
         return False
@@ -287,4 +296,4 @@ class Number(Text):
 
 
 class Color(Text):
-    template = "widgets/inputs/color.html"
+    template_name = "widgets/inputs/color.html"

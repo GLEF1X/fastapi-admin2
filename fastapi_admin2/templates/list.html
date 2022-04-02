@@ -110,7 +110,7 @@
                     {% endif %}
                     {% with outer_index = loop.index0 %}
                     {% for x in value %}
-                    <td {% for k,v in cell_attributes[outer_index][loop.index0].items() %}
+                    <td {% for k,v in cell_css_attributes[outer_index][loop.index0].items() %}
                         {{ k }}="{{ v }}" {% endfor %}>{{ x|safe }}
                     </td>
                     {% endfor %}

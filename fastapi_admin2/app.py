@@ -1,4 +1,4 @@
-import functools
+import os
 from typing import Any, Callable, Coroutine, Dict, List, Optional, Sequence, Type, Union
 from typing import Protocol
 
@@ -11,17 +11,17 @@ from starlette.responses import JSONResponse, Response
 from starlette.routing import BaseRoute
 from starlette.status import HTTP_403_FORBIDDEN, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND, \
     HTTP_500_INTERNAL_SERVER_ERROR
-from starlette.templating import Jinja2Templates
 
-from fastapi_admin2.i18n.middleware import AbstractI18nMiddleware
+from fastapi_admin2.localization.middleware import AbstractI18nMiddleware
 from fastapi_admin2.providers import Provider
-from .exceptions import not_found_error_exception, server_error_exception, forbidden_error_exception, \
-    unauthorized_error_exception
+from .localization import I18nMiddleware
+from .localization.translator import I18nTranslator
 from .resources import AbstractModelResource as ModelResource
 from .resources import Dropdown
 from .resources.base import Resource
+from .responses import server_error_exception, not_found, forbidden, unauthorized
 from .routes import resources
-from .templating import JinjaTemplates
+from .templating import JinjaTemplates, add_render_function_to_request
 
 
 class ORMBackend(Protocol):
@@ -35,14 +35,14 @@ class FastAPIAdmin(FastAPI):
 
     def __init__(
             self, *,
-            backend: ORMBackend,
+            orm_backend: ORMBackend,
             login_logo_url: Optional[str] = None,
             add_custom_exception_handlers: bool = True,
             logo_url: Optional[str] = None,
             admin_path: str = "/admin",
             providers: Optional[List[Provider]] = None,
             favicon_url: Optional[str] = None,
-            i18n_middleware: Optional[Type[AbstractI18nMiddleware]] = None,
+            i18n_middleware_class: Optional[Type[AbstractI18nMiddleware]] = None,
             debug: bool = False, routes: Optional[List[BaseRoute]] = None,
             title: str = "FastAPI",
             description: str = "",
@@ -92,13 +92,20 @@ class FastAPIAdmin(FastAPI):
         self.logo_url = logo_url
         self.favicon_url = favicon_url
 
-        self.add_middleware(i18n_middleware)
-        self.language_switch = True
+        translator = I18nTranslator()
 
         self.templates = JinjaTemplates()
+        self.templates.env.add_extension("jinja2.ext.i18n")
+        self.templates.env.install_gettext_callables(translator.gettext, translator.gettext)
+        self.middleware("http")(add_render_function_to_request)
         self.dependency_overrides[JinjaTemplates] = lambda: self.templates
 
-        self._orm_backend = backend
+        if i18n_middleware_class is None:
+            i18n_middleware_class = I18nMiddleware
+        self.add_middleware(i18n_middleware_class, translator=translator)
+        self.language_switch = True
+
+        self._orm_backend = orm_backend
         self._orm_backend.configure(self)
 
         self.resources: List[Type[Resource]] = []
@@ -107,27 +114,21 @@ class FastAPIAdmin(FastAPI):
         if add_custom_exception_handlers:
             exception_handlers = {
                 HTTP_500_INTERNAL_SERVER_ERROR: server_error_exception,
-                HTTP_404_NOT_FOUND: not_found_error_exception,
-                HTTP_403_FORBIDDEN: forbidden_error_exception,
-                HTTP_401_UNAUTHORIZED: unauthorized_error_exception
+                HTTP_404_NOT_FOUND: not_found,
+                HTTP_403_FORBIDDEN: forbidden,
+                HTTP_401_UNAUTHORIZED: unauthorized
             }
             for http_status, h in exception_handlers.items():
-                self.add_exception_handler(
-                    http_status, functools.partial(h, templates=self.templates)
-                )
+                self.add_exception_handler(http_status, h)
 
-        self._register_providers(providers)
+        for p in providers:
+            self.register_provider(p)
         self.include_router(resources.router)
 
-    def _register_providers(self, providers: Optional[List[Provider]] = None):
-        for p in providers or []:
-            p.register(self)
+    def register_provider(self, provider: Provider) -> None:
+        provider.register(self)
 
-    def register_resources(self, *resource: Type[Resource]) -> None:
-        for r in resource:
-            self.register(r)
-
-    def register(self, resource: Type[Resource]) -> None:
+    def register_resource(self, resource: Type[Resource]) -> None:
         self._set_model_resource(resource)
         self.resources.append(resource)
 
@@ -140,3 +141,6 @@ class FastAPIAdmin(FastAPI):
 
     def get_model_resource_type(self, model: Type[ORMModel]) -> Optional[Type[Resource]]:
         return self.model_resources.get(model)
+
+    def add_template_folder(self, folder: Union[str, os.PathLike]) -> None:
+        self.templates.env.loader.searchpath.insert(0, folder)

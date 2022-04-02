@@ -9,5 +9,5 @@ except ImportError:  # pragma: no cover
             raise RuntimeError(
                 "LazyProxy can be used only when Babel installed\n"
                 "Just install Babel (`pip install Babel`) "
-                "or fastapi-admin2 with i18n support (`pip install fastapi-admin2[i18n]`)"
+                "or fastapi-admin2 with localization support (`pip install fastapi-admin2[localization]`)"
             )

@@ -2,7 +2,7 @@ import os
 import pathlib
 from typing import Callable, Optional, Protocol, Sequence, Union, NewType
 
-import aiofiles
+import anyio
 from starlette.datastructures import UploadFile
 
 from fastapi_admin2.exceptions import FileExtNotAllowed, FileMaxSizeLimit
@@ -14,7 +14,7 @@ Link = NewType("Link", str)
 
 class FileManager(Protocol):
 
-    async def upload(self, file: UploadFile) -> Union[Link, os.PathLike]: ...
+    async def download_file(self, file: UploadFile) -> Union[Link, os.PathLike]: ...
 
 
 class OnPremiseFileManager:
@@ -30,7 +30,7 @@ class OnPremiseFileManager:
         self._uploads_dir = pathlib.Path(uploads_dir)
         self._filename_generator = filename_generator
 
-    async def upload(self, file: UploadFile) -> Union[Link, os.PathLike]:
+    async def download_file(self, file: UploadFile) -> Union[Link, os.PathLike]:
         if self._filename_generator:
             filename = self._filename_generator(file)
         else:
@@ -54,7 +54,7 @@ class OnPremiseFileManager:
         :return: relative path to upload directory
         """
         path_to_file = self._uploads_dir / filename
-        async with aiofiles.open(path_to_file, "wb") as f:
+        async with await anyio.open_file(path_to_file, "wb") as f:
             await f.write(content)
         return path_to_file
 
@@ -70,6 +70,6 @@ class StaticFilesManager:
         self._file_uploader = file_uploader
         self._static_path_prefix = static_path_prefix
 
-    async def upload(self, file: UploadFile) -> Union[Link, os.PathLike]:
-        await self._file_uploader.upload(file)
+    async def download_file(self, file: UploadFile) -> Union[Link, os.PathLike]:
+        await self._file_uploader.download_file(file)
         return Link(os.path.join(self._static_path_prefix, file.filename))

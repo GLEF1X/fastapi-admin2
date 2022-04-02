@@ -4,12 +4,12 @@ from sqlalchemy import select, exists, insert, update
 from sqlalchemy.exc import MultipleResultsFound, NoResultFound, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from fastapi_admin2.base.entities import AbstractAdmin
 from fastapi_admin2.backends.sqla.models import SqlalchemyAdminModel
-from fastapi_admin2.providers.security.dependencies import EntityNotFound
+from fastapi_admin2.base.entities import AbstractAdmin
+from fastapi_admin2.providers.security.dependencies import EntityNotFound, AdminDaoProto
 
 
-class SqlalchemyAdminDao:
+class SqlalchemyAdminDao(AdminDaoProto):
 
     def __init__(self, session: AsyncSession, admin_model_cls: Type[SqlalchemyAdminModel]):
         self._session = session
@@ -24,7 +24,10 @@ class SqlalchemyAdminDao:
                 raise AdministratorNotFound(ex)
 
     async def is_exists_at_least_one_admin(self, **filters: Any) -> bool:
-        stmt = exists(self._admin_model_cls).select().filter_by(**filters).limit(1)
+        select_statement = select(self._admin_model_cls.id).select_from(self._admin_model_cls).limit(1)
+        if filters:
+            select_statement = select_statement.filter_by(**filters)
+        stmt = exists(select_statement).select()
         async with self._session.begin():
             return cast(bool, (await self._session.execute(stmt)).scalar())
 

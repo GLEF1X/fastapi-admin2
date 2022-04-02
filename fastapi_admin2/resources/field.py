@@ -21,10 +21,12 @@ class Field:
     ):
         self.name = name
         self.label = label or name.title()
+
         if not display:
             display = displays.Display()
         display.context.update(label=self.label)
         self.display = display
+
         if not input_:
             input_ = inputs.Input()
         input_.context.update(label=self.label, name=name)
@@ -32,5 +34,5 @@ class Field:
 
 
 class ComputedField(Field):
-    async def get_value(self, request: Request, obj: Mapping) -> Optional[Any]:
+    async def get_value(self, request: Request, obj: Mapping[str, Any]) -> Optional[Any]:
         return obj.get(self.name)

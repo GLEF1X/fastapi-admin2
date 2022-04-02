@@ -14,11 +14,10 @@ from examples.sqlalchemy.orm_models import Admin
 from examples.sqlalchemy.routes.admin.home import admin_panel_main_router
 from examples.sqlalchemy.settings import BASE_DIR
 from fastapi_admin2.app import FastAPIAdmin
-from fastapi_admin2.i18n import I18nMiddleware
-from fastapi_admin2.providers.security.password_hashing.argon2_cffi import Argon2PasswordHasher
-from fastapi_admin2.utils.files import OnPremiseFileManager, StaticFilesManager
 from fastapi_admin2.backends.sqla import SQLAlchemyBackend
 from fastapi_admin2.providers.security import SecurityProvider
+from fastapi_admin2.providers.security.password_hashing.argon2_cffi import Argon2PasswordHasher
+from fastapi_admin2.utils.files import OnPremiseFileManager, StaticFilesManager
 
 
 class ApplicationBuilder:
@@ -69,7 +68,7 @@ class ApplicationBuilder:
         )
 
         admin_app = FastAPIAdmin(
-            backend=SQLAlchemyBackend(engine, session_pool, Admin),
+            orm_backend=SQLAlchemyBackend(session_pool, Admin),
             logo_url="https://svgshare.com/i/d4D.svg",
             template_folders=[BASE_DIR / "templates"],
             favicon_url="https://raw.githubusercontent.com/fastapi-admin/fastapi-admin/dev/images/favicon.png",
@@ -82,9 +81,9 @@ class ApplicationBuilder:
                     redis=redis,
                     password_hasher=Argon2PasswordHasher()
                 )
-            ],
-            i18n_middleware=I18nMiddleware
+            ]
         )
+
         self._main_app.state.engine = engine
 
         resources.register(admin_app)
@@ -92,11 +91,13 @@ class ApplicationBuilder:
 
         self._main_app.mount("/admin", admin_app)
 
+        admin_app.add_template_folder(BASE_DIR / "templates")
+
     def _register_middlewares(self) -> None:
         self._main_app.add_middleware(
             CORSMiddleware,
             allow_origins=["*"],
-            allow_credentials=True,
+            allow_credentials=False,
             allow_methods=["*"],
             allow_headers=["*"],
             expose_headers=["*"],

@@ -56,14 +56,14 @@ class Model(AbstractModelResource):
     async def resolve_form_data(self, data: FormData):
         for field in self.input_fields:
             field_input = field.input
-            if field_input.context.get("disabled") or isinstance(field_input, inputs.DisplayOnly):
+            if field_input.internationalized.get("disabled") or isinstance(field_input, inputs.DisplayOnly):
                 continue
 
-            input_name: Optional[str] = field_input.context.get("name")
+            input_name: Optional[str] = field_input.internationalized.get("name")
             if not isinstance(field_input, inputs.BaseManyToManyInput):
                 continue
 
-            v = await field_input.parse_value(data.getlist(input_name))
+            v = await field_input.parse(data.getlist(input_name))
 
     def _scaffold_model_fields_for_display(self) -> List[Field]:
         sqlalchemy_model_columns: Sequence[Column] = inspect(self.model).columns.items()

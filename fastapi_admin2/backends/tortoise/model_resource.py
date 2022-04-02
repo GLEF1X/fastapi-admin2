@@ -56,16 +56,16 @@ class Model(AbstractModelResource):
         m2m_ret = {}
         for field in self.input_fields:
             input_ = field.input
-            if input_.context.get("disabled") or isinstance(input_, DisplayOnly):
+            if input_.internationalized.get("disabled") or isinstance(input_, DisplayOnly):
                 continue
-            name = input_.context.get("name")
+            name = input_.internationalized.get("name")
             if isinstance(input_, ManyToMany):
                 v = data.getlist(name)
-                value = await input_.parse_value(v)
+                value = await input_.parse(v)
                 m2m_ret[name] = await input_.model.filter(pk__in=value)
             else:
                 v = data.get(name)
-                value = await input_.parse_value(v)
+                value = await input_.parse(v)
                 if value is None:
                     continue
                 ret[name] = value

@@ -1,22 +1,28 @@
 import abc
 from dataclasses import dataclass
 from enum import Enum as EnumCLS
-from typing import Any, List, Optional, Tuple, Type
+from typing import Any, List, Optional, Tuple, Type, Generic, TypeVar
 
 import pendulum
+from starlette.requests import Request
 
 from fastapi_admin2 import constants
 from fastapi_admin2.widgets.inputs import Input
 
-
-@dataclass
-class PublicFilter:
-    name: str
-    operator: Any
-    value: Any
+T = TypeVar("T")
+Q = TypeVar("Q")
 
 
-class AbstractFilter(Input, abc.ABC):
+@dataclass()
+class DateRange:
+    start: pendulum.DateTime
+    end: pendulum.DateTime
+
+    def to_string(self, date_format: str) -> str:
+        return f"{self.start.format(date_format)} - {self.end.format(date_format)}"
+
+
+class AbstractFilter(Input, abc.ABC, Generic[T]):
 
     def __init__(self, name: str, label: str, placeholder: str = "", null: bool = True,
                  **context: Any) -> None:
@@ -27,27 +33,22 @@ class AbstractFilter(Input, abc.ABC):
         """
         super().__init__(name=name, label=label, placeholder=placeholder, null=null, **context)
 
-    async def generate_public_filter(self, value: Any) -> PublicFilter:
-        return PublicFilter(
-            name=self.name,
-            operator=self.operator,
-            value=value
-        )
-
-    @property
     @abc.abstractmethod
-    def operator(self) -> Any: ...
+    def utilize(self, query: Q, value: T) -> Q:
+        pass
 
-    @property
-    def name(self) -> str:
-        return self.context["name"]
+    def validate(self, value: T) -> None:
+        pass
+
+    def parse(self, value: T) -> T:
+        return value
 
 
 class BaseSearchFilter(AbstractFilter, abc.ABC):
-    template = "widgets/filters/search.html"
+    template_name = "widgets/filters/search.html"
 
 
-class BaseDateRangeFilter(AbstractFilter, abc.ABC):
+class BaseDateRangeFilter(AbstractFilter[str], abc.ABC):
     def __init__(
             self,
             name: str,
@@ -65,20 +66,17 @@ class BaseDateRangeFilter(AbstractFilter, abc.ABC):
         )
         self.context.update(date=True)
 
-    async def parse_value(self, value: Optional[str]):
-        if value:
-            ranges = value.split(" - ")
-            return pendulum.parse(ranges[0]), pendulum.parse(ranges[1])
+    async def parse(self, value: str) -> DateRange:
+        date_range = value.split(" - ")
+        return DateRange(start=pendulum.parse(date_range[0]), end=pendulum.parse(date_range[1]))
 
-    async def render(self, value: Tuple[pendulum.DateTime, pendulum.DateTime]):
+    async def render(self, request: Request, value: DateRange) -> str:
         format_ = self.context.get("format")
-        if value is not None:
-            value = value[0].format(format_) + " - " + value[1].format(format_)
-        return await super().render(value)
+        return await super().render(request, value.to_string(date_format=format_))
 
 
 class BaseDatetimeRangeFilter(BaseDateRangeFilter, abc.ABC):
-    template = "widgets/filters/datetime.html"
+    template_name = "widgets/filters/datetime.html"
 
     def __init__(
             self,
@@ -93,13 +91,13 @@ class BaseDatetimeRangeFilter(BaseDateRangeFilter, abc.ABC):
 
 
 class BaseSelectFilter(AbstractFilter):
-    template = "widgets/filters/select.html"
+    template_name = "widgets/filters/select.html"
 
     def __init__(self, name: str, label: str, null: bool = True):
         super().__init__(name, label, null=null)
 
     @abc.abstractmethod
-    async def get_options(self):
+    async def get_options(self, request: Request):
         """
         return list of tuple with display and value
 
@@ -108,10 +106,10 @@ class BaseSelectFilter(AbstractFilter):
         :return: list of tuple with display and value
         """
 
-    async def render(self, value: Any):
-        options = await self.get_options()
+    async def render(self, request: Request, value: Any):
+        options = await self.get_options(request)
         self.context.update(options=options)
-        return await super().render(value)
+        return await super().render(request, value)
 
 
 class BaseEnumFilter(BaseSelectFilter, abc.ABC):
@@ -127,10 +125,10 @@ class BaseEnumFilter(BaseSelectFilter, abc.ABC):
         self.enum = enum
         self.enum_type = enum_type
 
-    async def parse_value(self, value: Any):
+    async def parse(self, value: Any):
         return self.enum(self.enum_type(value))
 
-    async def get_options(self):
+    async def get_options(self, request: Request):
         options = [(v.name, v.value) for v in self.enum]
         if self.context.get("null"):
             options = [("", "")] + options
@@ -139,11 +137,11 @@ class BaseEnumFilter(BaseSelectFilter, abc.ABC):
 
 class BaseBooleanFilter(BaseSelectFilter, abc.ABC):
 
-    async def get_options(self) -> List[Tuple[str, str]]:
+    async def get_options(self, request: Request) -> List[Tuple[str, str]]:
         """Return list of possible values to select from."""
         options = [
-            (_("TRUE"), "true"),
-            (_("FALSE"), "false"),
+            (request.state.t("TRUE"), "true"),
+            (request.state.t("FALSE"), "false"),
         ]
         if self.context.get("null"):
             options.insert(0, ("", ""))

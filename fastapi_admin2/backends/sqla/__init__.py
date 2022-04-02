@@ -19,9 +19,7 @@ from .model_resource import Model
 
 
 class SQLAlchemyBackend:
-    def __init__(self, engine: AsyncEngine, session_maker: sessionmaker,
-                 admin_model_cls: Type[SqlalchemyAdminModel]):
-        self._engine = engine
+    def __init__(self, session_maker: sessionmaker, admin_model_cls: Type[SqlalchemyAdminModel]):
         self._session_maker = session_maker
         self._admin_model_cls = admin_model_cls
 
@@ -45,7 +43,3 @@ class SQLAlchemyBackend:
         app.dependency_overrides[DeleteOneDependencyMarker] = delete_resource_by_id
         app.dependency_overrides[DeleteManyDependencyMarker] = bulk_delete_resources
         app.dependency_overrides[ModelListDependencyMarker] = get_resource_list
-
-        @app.on_event("shutdown")
-        async def on_shutdown():
-            await self._engine.dispose()

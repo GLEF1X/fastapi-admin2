@@ -36,7 +36,7 @@ coverage = "^6.2"
 
 # orm dialects
 tortoise-orm = "0.19.0"
-SQLAlchemy = "^1.4.31"
+SQLAlchemy = "^1.4.34"
 sqlalchemy2-stubs = "0.0.2a21"
 types-aiofiles = "*"
 

@@ -18,9 +18,9 @@ class Argon2PasswordHasher(PasswordHasherProto):
             hash_len: int = DEFAULT_HASH_LENGTH,
             salt_len: int = DEFAULT_RANDOM_SALT_LENGTH,
             encoding: str = "utf-8",
-            type: Type = Type.ID,
+            type_: Type = Type.ID,
     ):
-        self._hasher = PasswordHasher(time_cost, memory_cost, parallelism, hash_len, salt_len, encoding, type)
+        self._hasher = PasswordHasher(time_cost, memory_cost, parallelism, hash_len, salt_len, encoding, type_)
 
     def is_rehashing_required(self, hash_: str) -> bool:
         return self._hasher.check_needs_rehash(hash_)

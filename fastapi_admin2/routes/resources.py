@@ -29,7 +29,7 @@ async def list_view(
         resource_list: ResourceList = Depends(ModelListDependencyMarker)
 ) -> Response:
     parsed_query_params = await model_resource.parse_query_params(request)
-    filters = await model_resource.render_filters(parsed_query_params)
+    filters = await model_resource.render_filters(request, parsed_query_params)
     rendered_fields = await model_resource.render_fields(resource_list.models, request)
 
     context = {
@@ -37,8 +37,8 @@ async def list_view(
         "resources": resources,
         "fields_label": model_resource.get_field_labels(),
         "row_attributes": rendered_fields.row_attributes,
-        "column_css_attributes": rendered_fields.column_attributes,
-        "cell_css_attributes": rendered_fields.cell_attributes,
+        "column_css_attributes": rendered_fields.column_css_attributes,
+        "cell_css_attributes": rendered_fields.cell_css_attributes,
         "rendered_values": rendered_fields.rows,
         "filters": filters,
         "resource": resource_name,
@@ -53,12 +53,12 @@ async def list_view(
         "page_pre_title": model_resource.page_pre_title,
     }
     try:
-        return templates.TemplateResponse(
+        return await request.state.create_html_response(
             f"{resource_name}/list.html",
             context=context,
         )
     except TemplateNotFound:
-        return templates.TemplateResponse(
+        return await request.state.create_html_response(
             "list.html",
             context=context,
         )
@@ -96,12 +96,12 @@ async def update_view(
         "page_pre_title": model_resource.page_pre_title,
     }
     try:
-        return templates.TemplateResponse(
+        return await request.state.create_html_response(
             f"{resource}/update.html",
             context=context,
         )
     except TemplateNotFound:
-        return templates.TemplateResponse(
+        return await request.state.create_html_response(
             "update.html",
             context=context,
         )
@@ -114,7 +114,7 @@ async def create_view(
         resources=Depends(get_resources),
         model_resource: AbstractModelResource = Depends(get_model_resource),
 ):
-    inputs = await model_resource.render_inputs()
+    inputs = await model_resource.render_inputs(request)
     context = {
         "request": request,
         "resources": resources,
@@ -126,12 +126,12 @@ async def create_view(
         "page_pre_title": model_resource.page_pre_title,
     }
     try:
-        return templates.TemplateResponse(
+        return await request.state.create_html_response(
             f"{resource}/create.html",
             context=context,
         )
     except TemplateNotFound:
-        return templates.TemplateResponse(
+        return await request.state.create_html_response(
             "create.html",
             context=context,
         )
@@ -146,7 +146,7 @@ async def create(
         model: Type[Any] = Depends(get_orm_model_by_resource_name),
         session: AsyncSession = Depends(AsyncSessionDependencyMarker)
 ):
-    inputs = await model_resource.render_inputs()
+    inputs = await model_resource.render_inputs(request)
     form = await request.form()
     data, m2m_data = await model_resource.resolve_form_data(form)
 
@@ -166,12 +166,12 @@ async def create(
         "page_pre_title": model_resource.page_pre_title,
     }
     try:
-        return templates.TemplateResponse(
+        return await request.state.create_html_response(
             f"{resource}/create.html",
             context=context,
         )
     except TemplateNotFound:
-        return templates.TemplateResponse(
+        return await request.state.create_html_response(
             "create.html",
             context=context,
         )

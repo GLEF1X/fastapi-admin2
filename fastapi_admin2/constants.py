@@ -15,7 +15,7 @@ DATE_FORMAT_FLATPICKR = "Y-m-d"
 # redis cache
 CAPTCHA_ID = "captcha:{captcha_id}"
 LOGIN_ERROR_TIMES = "login_error_times:{ip}"
-LOGIN_USER = "login_user:{token}"
+LOGIN_USER = "login_user:{session_id}"
 
-# i18n
-PATH_TO_LOCALES = BASE_DIR / "i18n" / "locales"
+# localization
+PATH_TO_LOCALES = BASE_DIR / "localization" / "locales"

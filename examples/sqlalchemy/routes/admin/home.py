@@ -5,11 +5,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
 from starlette.status import HTTP_303_SEE_OTHER, HTTP_404_NOT_FOUND
+from starlette.templating import Jinja2Templates
 
 from examples.sqlalchemy.orm_models import Config
 from fastapi_admin2.depends import get_resources
 from fastapi_admin2.backends.sqla.markers import AsyncSessionDependencyMarker
-from fastapi_admin2.templating import templates
+from fastapi_admin2.templating import JinjaTemplates
 
 admin_panel_main_router = APIRouter(include_in_schema=False)
 
@@ -17,9 +18,9 @@ admin_panel_main_router = APIRouter(include_in_schema=False)
 @admin_panel_main_router.get("/")
 async def home(
         request: Request,
-        resources: List[Dict[str, Any]] = Depends(get_resources),
+        resources: List[Dict[str, Any]] = Depends(get_resources)
 ):
-    return templates.TemplateResponse(
+    return await request.state.create_html_response(
         "dashboard.html",
         context={
             "request": request,

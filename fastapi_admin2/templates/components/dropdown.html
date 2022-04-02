@@ -1,6 +1,9 @@
-<li class="nav-item dropdown {% if resource_label in resource.resources|map(attribute='label') %}
-                        active
-                        {% endif %}">
+<li class="nav-item dropdown
+{% for r in resource.resources %}
+    {% if resource_label == r.label %}
+        active
+    {% endif %}
+{% endfor %}">
     <a class="nav-link dropdown-toggle {% include 'components/dropdown-show.html' %}" href="#"
        data-bs-toggle="dropdown"
        role="button">
