@@ -60,11 +60,14 @@ class SecurityProvider(Provider):
 
     def register(self, app: "FastAPIAdmin") -> None:
         super(SecurityProvider, self).register(app)
+
         app.get(self.login_path)(self.login_view)
         app.post(self.login_path)(self.login)
         app.get(self.logout_path)(self.logout)
+
         app.get("/init")(self.init_view)
         app.post("/init")(self.handle_creation_of_init_admin)
+
         app.get("/renew_password")(self.renew_password_view)
         app.post("/renew_password")(self.renew_password)
 

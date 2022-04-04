@@ -54,7 +54,7 @@ class RequiredThirdPartyLibNotInstalled(Exception):
             self.can_be_installed_with_ext = f"[{can_be_installed_with_ext}]"
 
         super().__init__(
-            f"{self.thing_that_cant_work_without_lib} can be used only when Babel installed\n"
+            f"{self.thing_that_cant_work_without_lib} can be used only when {self.lib_name} installed\n"
             f"Just install {self.lib_name} (`pip install {self.lib_name}`) "
             f"or fastapi-admin2 with {self.thing_that_cant_work_without_lib} support"
             f" (`pip install fastapi-admin2{self.can_be_installed_with_ext}`)"
