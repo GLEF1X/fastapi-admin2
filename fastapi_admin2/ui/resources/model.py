@@ -54,7 +54,6 @@ class FieldSpec:
 class AbstractModelResource(Resource, abc.ABC):
     model: Type[Any]
     fields: Sequence[Union[str, Field]] = ()
-    page_size: int = 10
     page_pre_title: Optional[str] = None
     page_title: Optional[str] = None
     filters: Sequence[Union[str, AbstractFilter]] = ()
@@ -70,6 +69,8 @@ class AbstractModelResource(Resource, abc.ABC):
     _default_filter: Type[AbstractFilter]
 
     converters: Dict[Hashable, ColumnToFieldConverter[Any]] = {}
+
+    paginator: Any = object()
 
     def __init__(self) -> None:
         self._converters: Dict[Hashable, ColumnToFieldConverter[Any]] = {}
@@ -105,7 +106,7 @@ class AbstractModelResource(Resource, abc.ABC):
 
     async def render_fields(self, orm_models: Sequence[Any], request: Request) -> RenderedFields:
         result = await asyncio.gather(
-            self._generate_row_mappings(orm_models, request),
+            self._assemble_rows_list(orm_models, request),
             self._generate_css_attributes_for_rows(orm_models, request),
             self._generate_css_attributes_for_columns(request),
             self._generate_css_for_cells(orm_models, request)
@@ -135,7 +136,7 @@ class AbstractModelResource(Resource, abc.ABC):
             result.append(cell_css_attributes)
         return result
 
-    async def _generate_row_mappings(self, orm_models: Sequence[Any], request: Request):
+    async def _assemble_rows_list(self, orm_models: Sequence[Any], request: Request) -> List[List[str]]:
         result = []
         for orm_model_instance in orm_models:
             row = []
@@ -295,9 +296,9 @@ class AbstractModelResource(Resource, abc.ABC):
 
         :return:
         """
-        normalized_filters: List[AbstractFilter] = []
+        filters: List[AbstractFilter] = []
         for filter_ in self.filters:
             if isinstance(filter_, str):
                 filter_ = self._default_filter(name=filter_, label=filter_.title())
-            normalized_filters.append(filter_)
-        return normalized_filters
+            filters.append(filter_)
+        return filters

@@ -1,20 +1,14 @@
 import os
 import pathlib
-from typing import Callable, Optional, Protocol, Sequence, Union, NewType
+from typing import Callable, Optional, Sequence, Union
 
 import anyio
 from starlette.datastructures import UploadFile
 
 from fastapi_admin2.exceptions import FileExtNotAllowed, FileMaxSizeLimit
+from fastapi_admin2.utils.files.protocol import Link
 
 DEFAULT_MAX_FILE_SIZE = 1024 ** 3
-
-Link = NewType("Link", str)
-
-
-class FileManager(Protocol):
-
-    async def download_file(self, file: UploadFile) -> Union[Link, os.PathLike]: ...
 
 
 class OnPremiseFileManager:
@@ -62,14 +56,3 @@ class OnPremiseFileManager:
         if not self._allow_extensions:
             return False
         return all(not filename.endswith(ext) for ext in self._allow_extensions)
-
-
-class StaticFilesManager:
-
-    def __init__(self, file_uploader: FileManager, static_path_prefix: str = "/static/uploads"):
-        self._file_uploader = file_uploader
-        self._static_path_prefix = static_path_prefix
-
-    async def download_file(self, file: UploadFile) -> Union[Link, os.PathLike]:
-        await self._file_uploader.download_file(file)
-        return Link(os.path.join(self._static_path_prefix, file.filename))

@@ -2,8 +2,8 @@ from typing import Optional, Mapping, Any
 
 from starlette.requests import Request
 
-from fastapi_admin2.widgets import displays, inputs
-from fastapi_admin2.widgets.inputs import Input
+from fastapi_admin2.ui.widgets import displays, inputs
+from fastapi_admin2.ui.widgets.inputs import Input
 
 
 class Field:
