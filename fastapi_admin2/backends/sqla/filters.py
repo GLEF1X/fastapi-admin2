@@ -66,7 +66,7 @@ class DateRange(BaseDateRangeFilter):
 class DateTimeRange(BaseDateTimeRangeFilter):
     def __init__(self, column: Column, name: str, date_format: str = DATE_FORMAT_MOMENT, placeholder: str = "",
                  help_text: str = "", null: bool = True, **additional_context: Any):
-        super().__init__(name, date_format, placeholder, help_text, null, **additional_context)
+        super().__init__(name, date_format, placeholder, null, **additional_context)
         self._column = column
 
     def _apply_to_sql_query(self, query: Select, value: DateRangeDTO) -> Select:
