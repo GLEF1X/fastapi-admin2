@@ -4,7 +4,7 @@ from gettext import GNUTranslations
 from pathlib import Path
 from typing import Dict, Optional, Tuple, ContextManager
 
-from fastapi_admin2.constants import PATH_TO_LOCALES
+from fastapi_admin2.default_settings import PATH_TO_LOCALES
 from fastapi_admin2.localization.lazy_proxy import LazyProxy
 
 

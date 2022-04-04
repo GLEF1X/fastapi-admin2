@@ -39,20 +39,10 @@ class Model(AbstractModelResource):
         self._converters.update(self.converters)
 
     async def enrich_select_with_filters(self, request: Request, model: Any, query: Q) -> Q:
-        parsed_query_params = await self.parse_query_params(request)
-        where_conditions = []
+        query_params = {k: v for k, v in request.query_params.items() if v}
         for filter_ in self._normalized_filters:
-            if not parsed_query_params.get(filter_.name):
-                continue
-
-            generated_filter = await filter_.generate_public_filter(parsed_query_params[filter_.name])
-            where_conditions.append(
-                generated_filter.operator(
-                    model.__dict__[generated_filter.name],
-                    generated_filter.value
-                )
-            )
-        return query.where(*where_conditions)
+            query = filter_.apply(query, query_params.get(filter_.name))
+        return query
 
     async def resolve_form_data(self, data: FormData):
         for field in self.input_fields:

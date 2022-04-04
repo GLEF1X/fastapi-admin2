@@ -6,7 +6,7 @@ from typing import Any, List, Optional, Tuple, Type, Callable
 from starlette.datastructures import UploadFile
 from starlette.requests import Request
 
-from fastapi_admin2 import constants
+from fastapi_admin2.default_settings import DATE_FORMAT_FLATPICKR
 from fastapi_admin2.utils.files import FileManager
 from fastapi_admin2.widgets import Widget
 
@@ -213,7 +213,7 @@ class Date(Text):
             null: bool = False,
             placeholder: str = "",
             disabled: bool = False,
-            format_: str = constants.DATE_FORMAT_FLATPICKR
+            format_: str = DATE_FORMAT_FLATPICKR
     ):
         super().__init__(
             null=null,

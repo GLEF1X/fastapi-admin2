@@ -28,8 +28,7 @@ async def list_view(
         page_num: int = 1,
         resource_list: ResourceList = Depends(ModelListDependencyMarker)
 ) -> Response:
-    parsed_query_params = await model_resource.parse_query_params(request)
-    filters = await model_resource.render_filters(request, parsed_query_params)
+    filters = await model_resource.render_filters(request)
     rendered_fields = await model_resource.render_fields(resource_list.models, request)
 
     context = {

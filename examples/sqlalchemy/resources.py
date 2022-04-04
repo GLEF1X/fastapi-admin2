@@ -11,7 +11,7 @@ from fastapi_admin2.app import FastAPIAdmin
 from fastapi_admin2.backends.sqla import filters
 from fastapi_admin2.backends.sqla.filters import full_text_search_op
 from fastapi_admin2.backends.sqla.model_resource import Model
-from fastapi_admin2.constants import DATETIME_FORMAT
+from fastapi_admin2.default_settings import DATETIME_FORMAT
 from fastapi_admin2.enums import HTTPMethod
 from fastapi_admin2.resources import Action, Dropdown, Field, Link, ToolbarAction
 from fastapi_admin2.utils.files import OnPremiseFileManager, StaticFilesManager
@@ -46,9 +46,9 @@ class AdminResource(Model):
             Admin.username,
             name="username",
             label="Имя",
-            placeholder="Никнейм"
+            placeholder="Никнейм",
         ),
-        filters.DateTimeRange(Admin.created_at, "created_at"),
+        filters.DateRange(Admin.created_at, name="created_at", label="Дата создания"),
     ]
     fields = [
         "id",
@@ -101,16 +101,16 @@ class Content(Dropdown):
         label = "Продукты"
         model = Product
         filters = [
-            filters.Enum(Category.name, name="category name", enum=enums.ProductType, label="Тип продукта"),
-            filters.DateTimeRange(Category.created_at, "created_at"),
+            filters.Enum(Product.category, enum=enums.ProductType, name="type", label="Тип продукта"),
+            filters.DateTimeRange(Product.created_at, name="created_at", label="Дата создания"),
+            filters.Boolean(Product.is_reviewed, name="is_reviewed", label="Готов к продаже"),
             # filters.ForeignKey(to_column=Product.category_id, name="category", label="Категория")
         ]
 
         fields = [
             "id",
             Field("name", label="Имя"),
-            Field("is_reviewed", label="Готов к продаже", input_=inputs.Switch(),
-                  display=displays.Boolean()),
+            Field("is_reviewed", label="Готов к продаже", input_=inputs.Switch(), display=displays.Boolean()),
             Field("type", label="Тип", input_=inputs.Enum(enums.ProductType)),
             Field(name="image", label="Картинка", display=displays.Image(width="40")),
             Field(name="body", label="Описание", input_=inputs.Editor()),
@@ -135,8 +135,8 @@ class ConfigResource(Model):
     model = Config
     icon = "fas fa-cogs"
     filters = [
-        filters.Enum(Config.status, name="status", enum=enums.Status),
-        filters.Search(Config.key, name="key", sqlalchemy_operator=full_text_search_op),
+        filters.Enum(Config.status, enum=enums.Status, name="status", label="Статус"),
+        filters.Search(Config.key, name="key", label="Ключ", sqlalchemy_operator=full_text_search_op),
     ]
     fields = [
         "id",

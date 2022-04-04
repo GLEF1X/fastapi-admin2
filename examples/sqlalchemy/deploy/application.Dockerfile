@@ -1,4 +1,4 @@
-# `python-domain` sets up all our shared environment variables
+# `python-base` sets up all our shared environment variables
 FROM python:3.9-slim-bullseye as python-base
 
 
@@ -31,7 +31,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # prepend poetry and venv to path
 ENV PATH="$POETRY_HOME/bin:$VENV_PATH/bin:$PATH"
 
-# `builder-domain` stage is used to build deps + create our virtual environment
+# `builder-base` stage is used to build deps + create our virtual environment
 FROM python-base as builder-base
 RUN apt-get -y update \
     && apt-get --no-install-recommends install -y \

@@ -41,13 +41,9 @@ class Model(AbstractModelResource):
         self._converters.update(self.converters)
 
     async def enrich_select_with_filters(self, request: Request, model: Any, query: Q) -> Q:
-        parsed_query_params = await self.parse_query_params(request)
+        query_params = {k: v for k, v in request.query_params.items() if v}
         for filter_ in self._normalized_filters:
-            if not parsed_query_params.get(filter_.name):
-                continue
-
-            f = await filter_.generate_public_filter(parsed_query_params[filter_.name])
-            query = query.filter(**{f.name + f.operator: f.value})
+            query = filter_.apply(query, query_params.get(filter_.name))
 
         return query
 
@@ -65,7 +61,7 @@ class Model(AbstractModelResource):
                 m2m_ret[name] = await input_.model.filter(pk__in=value)
             else:
                 v = data.get(name)
-                value = await input_.parse_input(v)
+                value = await input_.parse(v)
                 if value is None:
                     continue
                 ret[name] = value

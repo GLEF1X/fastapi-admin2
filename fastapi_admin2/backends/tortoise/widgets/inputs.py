@@ -1,6 +1,8 @@
 import json
 from typing import Any
 
+from starlette.requests import Request
+
 from fastapi_admin2.widgets.inputs import Input, BaseManyToManyInput, BaseForeignKeyInput
 
 
@@ -19,14 +21,14 @@ class ForeignKey(BaseForeignKeyInput):
 class ManyToMany(BaseManyToManyInput):
     template_name = "widgets/inputs/many_to_many.html"
 
-    async def render(self, value: Any):
+    async def render(self, request: Request, value: Any):
         options = await self.get_options()
         selected = list(map(lambda x: x.pk, value.related_objects if value else []))
         for option in options:
             if option.get("value") in selected:
                 option["selected"] = True
         self.context.update(options=json.dumps(options))
-        return await super(Input, self).render(value)
+        return await super(Input, self).render(request, value)
 
     async def get_options(self):
         ret = await self.get_queryset()

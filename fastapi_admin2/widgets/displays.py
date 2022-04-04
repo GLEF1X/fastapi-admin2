@@ -4,7 +4,8 @@ from typing import Optional, Any, Callable
 
 from starlette.requests import Request
 
-from fastapi_admin2 import constants
+from fastapi_admin2 import default_settings
+from fastapi_admin2.default_settings import DATETIME_FORMAT, DATE_FORMAT
 from fastapi_admin2.widgets import Widget
 
 
@@ -15,7 +16,7 @@ class Display(Widget):
 
 
 class DatetimeDisplay(Display):
-    def __init__(self, format_: str = constants.DATETIME_FORMAT):
+    def __init__(self, format_: str = DATETIME_FORMAT):
         super().__init__()
         self.format_ = format_
 
@@ -28,7 +29,7 @@ class DatetimeDisplay(Display):
 
 
 class DateDisplay(DatetimeDisplay):
-    def __init__(self, format_: str = constants.DATE_FORMAT):
+    def __init__(self, format_: str = DATE_FORMAT):
         super().__init__(format_)
 
 

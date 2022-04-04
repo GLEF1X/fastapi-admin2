@@ -8,16 +8,15 @@ from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 from starlette.status import HTTP_303_SEE_OTHER, HTTP_401_UNAUTHORIZED
 
-from fastapi_admin2 import constants
-from fastapi_admin2.domain.entities import AbstractAdmin
 from fastapi_admin2.depends import get_resources
+from fastapi_admin2.domain.entities import AbstractAdmin
 from fastapi_admin2.providers import Provider
 from fastapi_admin2.providers.security.dependencies import AdminDaoDependencyMarker, EntityNotFound, \
     AdminDaoProto
 from fastapi_admin2.providers.security.dto import InitAdmin, RenewPasswordCredentials, LoginCredentials
 from fastapi_admin2.providers.security.password_hashing.protocol import HashVerifyFailedError, \
     PasswordHasherProto
-from fastapi_admin2.providers.security.responses import to_init_page, to_login_page, unauthorized
+from fastapi_admin2.providers.security.responses import to_init_page, to_login_page
 from fastapi_admin2.utils.depends import get_dependency_from_request_by_marker
 from fastapi_admin2.utils.files import FileManager
 
@@ -32,9 +31,12 @@ def get_current_admin(request: Request) -> AbstractAdmin:
     return admin
 
 
+SESSION_ID_KEY = "user_session:{session_id}"
+
+
 class SecurityProvider(Provider):
     name = "security_provider"
-    session_key = "session"
+    session_cookie_key = "user_session"
 
     def __init__(
             self,
@@ -69,7 +71,7 @@ class SecurityProvider(Provider):
         app.add_middleware(BaseHTTPMiddleware, dispatch=self.authenticate_middleware)
 
     async def login_view(self, request: Request,
-                         admin_dao: AdminDaoProto = Depends(AdminDaoDependencyMarker),) -> Response:
+                         admin_dao: AdminDaoProto = Depends(AdminDaoDependencyMarker), ) -> Response:
         if not await admin_dao.is_exists_at_least_one_admin():
             return to_init_page(request)
 
@@ -88,41 +90,46 @@ class SecurityProvider(Provider):
             login_credentials: LoginCredentials = Depends(LoginCredentials.as_form),
             admin_dao: AdminDaoProto = Depends(AdminDaoDependencyMarker),
     ) -> Response:
+        unauthorized_response = await self.templates.create_html_response(
+            self.template_name,
+            status_code=HTTP_401_UNAUTHORIZED,
+            context={"request": request, "error": request.state.gettext("login_failed")},
+        )
         try:
             admin = await admin_dao.get_one_admin_by_filters(username=login_credentials.username)
         except EntityNotFound:
-            return await unauthorized(self.template_name, request)
+            return unauthorized_response
         else:
             if self._is_password_hash_is_invalid(admin, login_credentials.password):
-                return await unauthorized(self.template_name, request)
+                return unauthorized_response
 
             if self._password_hasher.is_rehashing_required(admin.password):
                 await admin_dao.update_admin({}, password=self._password_hasher.hash(admin.password))
 
         response = RedirectResponse(url=request.app.admin_path, status_code=HTTP_303_SEE_OTHER)
         if login_credentials.remember_me:
-            expire = 3600 * 24 * 30
+            expires_in_seconds = 3600 * 24 * 30
             response.set_cookie("remember_me", "on")
         else:
-            expire = 3600
+            expires_in_seconds = 3600
             response.delete_cookie("remember_me")
 
         session_id = uuid.uuid4().hex
         response.set_cookie(
-            self.session_key,
+            self.session_cookie_key,
             session_id,
-            expires=expire,
+            expires=expires_in_seconds,
             path=request.app.admin_path,
             httponly=True
         )
-        await self._redis.set(constants.LOGIN_USER.format(session_id=session_id), admin.id, ex=expire)
+        await self._redis.set(SESSION_ID_KEY.format(session_id=session_id), admin.id, ex=expires_in_seconds)
         return response
 
     async def logout(self, request: Request) -> Response:
         response = to_login_page(request)
-        response.delete_cookie(self.session_key, path=request.app.admin_path)
-        session_id = request.cookies[self.session_key]
-        await self._redis.delete(constants.LOGIN_USER.format(session_id=session_id))
+        response.delete_cookie(self.session_cookie_key, path=request.app.admin_path)
+        session_id = request.cookies[self.session_cookie_key]
+        await self._redis.delete(SESSION_ID_KEY.format(session_id=session_id))
         return response
 
     async def authenticate_middleware(
@@ -134,12 +141,11 @@ class SecurityProvider(Provider):
 
         paths_related_to_authentication_stuff = [self.login_path, "/init", "/renew_password"]
 
-        if not (session_id := request.cookies.get(self.session_key)):
+        if not (session_id := request.cookies.get(self.session_cookie_key)):
             if request.scope["path"] not in paths_related_to_authentication_stuff:
                 return to_login_page(request)
 
-        token_key = constants.LOGIN_USER.format(session_id=session_id)
-        admin_id = await self._redis.get(token_key)
+        admin_id = await self._redis.get(SESSION_ID_KEY.format(session_id=session_id))
         admin_dao: AdminDaoProto = get_dependency_from_request_by_marker(request, AdminDaoDependencyMarker)
         try:
             admin = await admin_dao.get_one_admin_by_filters(id=int(admin_id))
@@ -173,7 +179,7 @@ class SecurityProvider(Provider):
         if init_admin.password != init_admin.confirm_password:
             return await self.templates.create_html_response(
                 "init.html",
-                context={"request": request, "error": request.state.t("confirm_password_different")},
+                context={"request": request, "error": request.state.gettext("confirm_password_different")},
             )
 
         path_to_profile_pic = await self._file_manager.download_file(init_admin.profile_pic)
@@ -209,10 +215,10 @@ class SecurityProvider(Provider):
     ) -> Response:
         error = None
         if self._is_password_hash_is_invalid(admin, form.old_password):
-            error = request.state.t("old_password_error")
+            error = request.state.gettext("old_password_error")
 
         if form.new_password != form.confirmation_new_password:
-            error = request.state.t("new_password_different")
+            error = request.state.gettext("new_password_different")
 
         if error:
             return await self.templates.create_html_response(

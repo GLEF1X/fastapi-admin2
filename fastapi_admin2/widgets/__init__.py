@@ -5,7 +5,6 @@ from starlette.requests import Request
 
 class Widget:
     template_name = ""
-    gettext: Callable[[str], str] = lambda x: x
 
     def __init__(self, **context: Any):
         """
@@ -16,7 +15,6 @@ class Widget:
         self.context = context
 
     async def render(self, request: Request, value: Any) -> str:
-        self.gettext = request.state.t
         if value is None:
             value = ""
         if not self.template_name:

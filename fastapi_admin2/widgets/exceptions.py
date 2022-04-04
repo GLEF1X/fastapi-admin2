@@ -1,6 +1,2 @@
-class WidgetError(Exception):
-    pass
-
-
-class FilterInputValidationError(WidgetError):
+class FilterValidationError(Exception):
     pass

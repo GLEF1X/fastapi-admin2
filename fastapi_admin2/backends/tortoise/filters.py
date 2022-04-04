@@ -1,48 +1,52 @@
 from typing import Any, Literal
 
-from fastapi_admin2.widgets.filters import BaseSearchFilter, BaseDateTimeRangeFilter, BaseDateRangeFilter, \
-    BaseEnumFilter, BaseBooleanFilter
+from fastapi_admin2.widgets.filters import BaseSearchFilter, BaseDateRangeFilter, \
+    BaseEnumFilter, BaseBooleanFilter, Q, BaseDateTimeRangeFilter
 
 SearchMode = Literal[
     "equal", "contains", "icontains", "startswith",
     "istartswith", "endswith", "iendswith", "iexact", "search"
 ]
 
-TORTOISE_EQUAL_OP = ""
-
 
 class Search(BaseSearchFilter):
 
-    def __init__(self, name: str, label: str, search_mode: SearchMode = "equal", **additional_context: Any):
-        """
+    def __init__(
+            self,
+            name: str,
+            search_mode: SearchMode = "equal",
+            placeholder: str = "",
+            null: bool = True,
+            **additional_context: Any
+    ) -> None:
+        super().__init__(name, placeholder, null, **additional_context)
+        self._search_mode = search_mode
 
-        :param name:
-        :param label:
-        :param search_mode: equal,contains,icontains,startswith,istartswith,endswith,iendswith,iexact,search
-        :param additional_context:
-        """
-        super().__init__(name, label, **additional_context)
-        if search_mode == "equal":
-            self._search_mode = ""
-        else:
-            self._search_mode = search_mode
-
-    @property
-    def operator(self) -> Any:
-        return self._search_mode
+    def _apply_to_sql_query(self, query: Q, value: Any) -> Q:
+        return query.filter(**{self.name: f"{self.name}__{self._search_mode}"})
 
 
 class DateRange(BaseDateRangeFilter):
-    operator = TORTOISE_EQUAL_OP
+    def _apply_to_sql_query(self, query: Q, value: Any) -> Q:
+        return query.filter(**{self.name: f"{self.name}__range"})
 
 
-class DateTimeRange(BaseDateTimeRangeFilter, DateRange):
-    pass
+class DateTimeRange(BaseDateTimeRangeFilter):
+    def _apply_to_sql_query(self, query: Q, value: Any) -> Q:
+        return query.filter(**{self.name: f"{self.name}__range"})
 
 
 class Enum(BaseEnumFilter):
-    operator = TORTOISE_EQUAL_OP
+    def _apply_to_sql_query(self, query: Q, value: Any) -> Q:
+        return query.filter(**{self.name: value})
 
 
 class Boolean(BaseBooleanFilter):
-    operator = TORTOISE_EQUAL_OP
+
+    def clean(self, value: Any) -> Any:
+        if value == "true":
+            return True
+        return False
+
+    def _apply_to_sql_query(self, query: Q, value: Any) -> Q:
+        return query.filter(**{self.name: value})

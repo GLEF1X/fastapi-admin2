@@ -34,8 +34,8 @@ class AbstractI18nMiddleware(BaseHTTPMiddleware, ABC):
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         current_locale = await self.get_locale(request)
-        request.state.t = functools.partial(self._translator.gettext, locale=current_locale)
-        request.state.lazy_t = functools.partial(self._translator.lazy_gettext, locale=current_locale)
+        request.state.gettext = functools.partial(self._translator.gettext, locale=current_locale)
+        request.state.lazy_gettext = functools.partial(self._translator.lazy_gettext, locale=current_locale)
         request.state.current_locale = current_locale
 
         with self._translator.internationalized(new_locale=current_locale):

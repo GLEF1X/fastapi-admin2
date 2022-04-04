@@ -164,29 +164,12 @@ class AbstractModelResource(Resource, abc.ABC):
 
         return rendered_inputs
 
-    async def parse_query_params(self, request: Request) -> dict:
-        params = {}
-        query_params = request.query_params
-        for filter_ in self._normalized_filters:
-            try:
-                matched_filter_value = query_params[filter_.name]
-                if matched_filter_value == "":
-                    raise KeyError
-            except KeyError:
-                continue
-            params[filter_.name] = await filter_.parse_input(matched_filter_value)
-        return params
-
-    async def render_filters(self, request: Request, values: Optional[Dict[str, Any]] = None) -> List[str]:
-        if not values:
-            values = {}
+    async def render_filters(self, request: Request) -> List[str]:
         rendered_filters: List[str] = []
         for filter_ in self._normalized_filters:
             if isinstance(filter_, str):  # denotes that filter is a column name
                 filter_ = self._default_filter(name=filter_, label=filter_.title())
-
-            value = values.get(filter_.name)
-            rendered_filters.append(await filter_.render(request, value))
+            rendered_filters.append(await filter_.render(request))
         return rendered_filters
 
     def get_field_labels(self, display: bool = True) -> List[str]:
@@ -215,7 +198,7 @@ class AbstractModelResource(Resource, abc.ABC):
     async def get_toolbar_actions(self, request: Request) -> List[ToolbarAction]:
         return [
             ToolbarAction(
-                label=request.state.t("create"),
+                label=request.state.gettext("create"),
                 icon="fas fa-plus",
                 name="create",
                 method=HTTPMethod.GET,
@@ -227,14 +210,14 @@ class AbstractModelResource(Resource, abc.ABC):
     async def get_actions(self, request: Request) -> List[Action]:
         return [
             Action(
-                label=request.state.t("update"),
+                label=request.state.gettext("update"),
                 icon="ti ti-edit",
                 name="update",
                 method=HTTPMethod.GET,
                 ajax=False
             ),
             Action(
-                label=request.state.t("delete"),
+                label=request.state.gettext("delete"),
                 icon="ti ti-trash",
                 name="delete",
                 method=HTTPMethod.DELETE
@@ -244,7 +227,7 @@ class AbstractModelResource(Resource, abc.ABC):
     async def get_bulk_actions(self, request: Request) -> List[Action]:
         return [
             Action(
-                label=request.state.t("delete_selected"),
+                label=request.state.gettext("delete_selected"),
                 icon="ti ti-trash",
                 name="delete",
                 method=HTTPMethod.DELETE,
