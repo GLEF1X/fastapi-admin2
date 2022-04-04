@@ -1,19 +1,18 @@
 import abc
 from dataclasses import dataclass
 from enum import Enum as EnumCLS
-from typing import Any, List, Optional, Tuple, Type, Generic, TypeVar
+from typing import Any, List, Tuple, Type, TypeVar, Dict, ClassVar, Sequence, Optional
 
 import pendulum
 from starlette.requests import Request
 
-from fastapi_admin2 import constants
-from fastapi_admin2.widgets.inputs import Input
+from fastapi_admin2.constants import DATE_FORMAT_MOMENT
+from fastapi_admin2.widgets.exceptions import FilterInputValidationError
 
-T = TypeVar("T")
 Q = TypeVar("Q")
 
 
-@dataclass()
+@dataclass
 class DateRange:
     start: pendulum.DateTime
     end: pendulum.DateTime
@@ -22,25 +21,55 @@ class DateRange:
         return f"{self.start.format(date_format)} - {self.end.format(date_format)}"
 
 
-class AbstractFilter(Input, abc.ABC, Generic[T]):
+class AbstractFilter(abc.ABC):
+    template_name = ""
 
-    def __init__(self, name: str, label: str, placeholder: str = "", null: bool = True,
-                 **context: Any) -> None:
-        """
-        Parent class for all filters
-        :param name: model field name
-        :param label:
-        """
-        super().__init__(name=name, label=label, placeholder=placeholder, null=null, **context)
+    def __init__(
+            self,
+            name: str,
+            placeholder: str = "",
+            help_text: str = "",
+            null: bool = True,
+            **additional_context: Any
+    ) -> None:
+        self.name = name
+        self._placeholder = placeholder
+        self._help_text = help_text
+        self._null = null
+        self._ctx = additional_context
+
+    async def render(self, request: Request, value: Any) -> str:
+        if value is None:
+            value = ""
+        if not self.template_name:
+            return value
+
+        return await request.state.render_jinja(
+            self.template_name,
+            context=dict(
+                value=self.clean(value),
+                current_locale=request.state.current_locale,
+                name=request.state.t(self.name),
+                placeholder=request.state.t(self._placeholder),
+                help_text=self._help_text,
+                null=self._null,
+                **self._ctx
+            )
+        )
 
     @abc.abstractmethod
-    def utilize(self, query: Q, value: T) -> Q:
+    def apply_to_sql_query(self, query: Q, value: Any) -> Q:
         pass
 
-    def validate(self, value: T) -> None:
-        pass
+    def clean(self, value: Any) -> Any:
+        """
+        Validates and clean input value
+        """
+        if value is None and self._null is False:
+            raise FilterInputValidationError(
+                f"{self.__class__.__qualname__} filter's validation has been failed"
+            )
 
-    def parse(self, value: T) -> T:
         return value
 
 
@@ -48,56 +77,58 @@ class BaseSearchFilter(AbstractFilter, abc.ABC):
     template_name = "widgets/filters/search.html"
 
 
-class BaseDateRangeFilter(AbstractFilter[str], abc.ABC):
-    def __init__(
-            self,
-            name: str,
-            label: str,
-            format_: str = constants.DATE_FORMAT_MOMENT,
-            null: bool = True,
-            placeholder: str = ""
-    ):
-        super().__init__(
-            name=name,
-            label=label,
-            format=format_,
-            null=null,
-            placeholder=placeholder
-        )
-        self.context.update(date=True)
-
-    async def parse(self, value: str) -> DateRange:
-        date_range = value.split(" - ")
-        return DateRange(start=pendulum.parse(date_range[0]), end=pendulum.parse(date_range[1]))
-
-    async def render(self, request: Request, value: DateRange) -> str:
-        format_ = self.context.get("format")
-        return await super().render(request, value.to_string(date_format=format_))
-
-
-class BaseDatetimeRangeFilter(BaseDateRangeFilter, abc.ABC):
+class BaseDateRangeFilter(AbstractFilter, abc.ABC):
     template_name = "widgets/filters/datetime.html"
 
     def __init__(
             self,
             name: str,
-            label: str,
-            format_: str = constants.DATETIME_FORMAT_MOMENT,
-            null: bool = True,
+            date_format: str = DATE_FORMAT_MOMENT,
             placeholder: str = "",
+            help_text: str = "",
+            null: bool = True,
+            **additional_context: Any
     ):
-        super().__init__(name, label, null=null, format_=format_, placeholder=placeholder, )
-        self.context.update(date=False)
+        super().__init__(name, placeholder, help_text, null, **additional_context)
+        self._ctx.update(date=True)
+        self._date_format = date_format
+
+    def clean(self, value: Any) -> Any:
+        value = super().clean(value)
+
+        if not value:
+            return ""
+
+        date_range = value.split(" - ")
+        date_range = DateRange(start=pendulum.parse(date_range[0]), end=pendulum.parse(date_range[1]))
+        return date_range.to_string(date_format=self._date_format)
 
 
-class BaseSelectFilter(AbstractFilter):
-    template_name = "widgets/filters/select.html"
+class BaseDateTimeRangeFilter(BaseDateRangeFilter, abc.ABC):
 
-    def __init__(self, name: str, label: str, null: bool = True):
-        super().__init__(name, label, null=null)
+    def __init__(
+            self,
+            name: str,
+            date_format: str = DATE_FORMAT_MOMENT,
+            placeholder: str = "",
+            help_text: str = "",
+            null: bool = True,
+            **additional_context: Any
+    ):
+        super().__init__(name, date_format, placeholder, help_text, null, **additional_context)
+        self._ctx.update(date=False)
+
+
+class BaseSelectFilter(AbstractFilter, abc.ABC):
+    template_name: ClassVar[str] = "widgets/filters/select.html"
+
+    async def render(self, request: Request, value: Any) -> str:
+        options = await self.get_options(request)
+        self._ctx.update(options=options)
+        return await super().render(request, value)
 
     @abc.abstractmethod
-    async def get_options(self, request: Request):
+    async def get_options(self, request: Request) -> Sequence[Tuple[str, Any]]:
         """
         return list of tuple with display and value
 
@@ -106,31 +137,30 @@ class BaseSelectFilter(AbstractFilter):
         :return: list of tuple with display and value
         """
 
-    async def render(self, request: Request, value: Any):
-        options = await self.get_options(request)
-        self.context.update(options=options)
-        return await super().render(request, value)
-
 
 class BaseEnumFilter(BaseSelectFilter, abc.ABC):
+
     def __init__(
             self,
             enum: Type[EnumCLS],
             name: str,
-            label: str,
-            enum_type: Type = int,
+            enum_type: Type[Any] = int,
+            placeholder: str = "",
+            help_text: str = "",
             null: bool = True,
-    ):
-        super().__init__(name=name, label=label, null=null)
-        self.enum = enum
-        self.enum_type = enum_type
+            **additional_context: Any
+    ) -> None:
+        super().__init__(placeholder=placeholder, name=name, additional_context=additional_context, null=null,
+                         help_text=help_text)
+        self._enum = enum
+        self._enum_type = enum_type
 
-    async def parse(self, value: Any):
-        return self.enum(self.enum_type(value))
+    async def parse_input(self, value: Any):
+        return self._enum(self._enum_type(value))
 
     async def get_options(self, request: Request):
-        options = [(v.name, v.value) for v in self.enum]
-        if self.context.get("null"):
+        options = [(v.name, v.value) for v in self._enum]
+        if self._ctx.get("null"):
             options = [("", "")] + options
         return options
 
@@ -143,7 +173,7 @@ class BaseBooleanFilter(BaseSelectFilter, abc.ABC):
             (request.state.t("TRUE"), "true"),
             (request.state.t("FALSE"), "false"),
         ]
-        if self.context.get("null"):
+        if self._null:
             options.insert(0, ("", ""))
 
         return options

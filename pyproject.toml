@@ -16,6 +16,7 @@ python-multipart = "*"
 pendulum = "2.1.2"
 argon2-cffi = "^21.3.0"
 orjson = "^3.6.6"
+attrs = "^21.4.0"
 
 [tool.poetry.dev-dependencies]
 # lint

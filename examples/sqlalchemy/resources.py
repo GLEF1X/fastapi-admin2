@@ -2,18 +2,16 @@ from datetime import datetime
 from typing import List, Any
 
 import orjson
-from sqlalchemy.dialects.postgresql import BIT
-from sqlalchemy.sql.operators import match_op
 from starlette.requests import Request
 
 from examples.sqlalchemy.entities import enums
 from examples.sqlalchemy.orm_models import Admin, Category, Product, Config
 from examples.sqlalchemy.settings import BASE_DIR
 from fastapi_admin2.app import FastAPIAdmin
-from fastapi_admin2.constants import DATETIME_FORMAT
 from fastapi_admin2.backends.sqla import filters
 from fastapi_admin2.backends.sqla.filters import full_text_search_op
 from fastapi_admin2.backends.sqla.model_resource import Model
+from fastapi_admin2.constants import DATETIME_FORMAT
 from fastapi_admin2.enums import HTTPMethod
 from fastapi_admin2.resources import Action, Dropdown, Field, Link, ToolbarAction
 from fastapi_admin2.utils.files import OnPremiseFileManager, StaticFilesManager
@@ -45,11 +43,12 @@ class AdminResource(Model):
     page_title = "Администраторы"
     filters = [
         filters.Search(
+            Admin.username,
             name="username",
             label="Имя",
-            placeholder="Никнейм",
+            placeholder="Никнейм"
         ),
-        filters.DateTimeRange(name="created_at", label="Дата создания"),
+        filters.DateTimeRange(Admin.created_at, "created_at"),
     ]
     fields = [
         "id",
@@ -102,16 +101,16 @@ class Content(Dropdown):
         label = "Продукты"
         model = Product
         filters = [
-            filters.Enum(enum=enums.ProductType, name="type", label="Тип продукта"),
-            filters.DateTimeRange(name="created_at", label="Дата создания"),
-            filters.Boolean(name="is_reviewed", label="Готов к продаже"),
+            filters.Enum(Category.name, name="category name", enum=enums.ProductType, label="Тип продукта"),
+            filters.DateTimeRange(Category.created_at, "created_at"),
             # filters.ForeignKey(to_column=Product.category_id, name="category", label="Категория")
         ]
 
         fields = [
             "id",
             Field("name", label="Имя"),
-            Field("is_reviewed", label="Готов к продаже", input_=inputs.Switch(), display=displays.Boolean()),
+            Field("is_reviewed", label="Готов к продаже", input_=inputs.Switch(),
+                  display=displays.Boolean()),
             Field("type", label="Тип", input_=inputs.Enum(enums.ProductType)),
             Field(name="image", label="Картинка", display=displays.Image(width="40")),
             Field(name="body", label="Описание", input_=inputs.Editor()),
@@ -136,8 +135,8 @@ class ConfigResource(Model):
     model = Config
     icon = "fas fa-cogs"
     filters = [
-        filters.Enum(enum=enums.Status, name="status", label="Статус"),
-        filters.Search(name="key", label="Ключ", sqlalchemy_operator=full_text_search_op),
+        filters.Enum(Config.status, name="status", enum=enums.Status),
+        filters.Search(Config.key, name="key", sqlalchemy_operator=full_text_search_op),
     ]
     fields = [
         "id",

@@ -44,6 +44,7 @@ class Model(AbstractModelResource):
         for filter_ in self._normalized_filters:
             if not parsed_query_params.get(filter_.name):
                 continue
+
             generated_filter = await filter_.generate_public_filter(parsed_query_params[filter_.name])
             where_conditions.append(
                 generated_filter.operator(

@@ -5,7 +5,7 @@ from sqlalchemy import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.requests import Request
 
-from fastapi_admin2.base.entities import ResourceList
+from fastapi_admin2.domain.entities import ResourceList
 from fastapi_admin2.depends import get_model_resource, get_orm_model_by_resource_name
 from fastapi_admin2.backends.sqla.markers import AsyncSessionDependencyMarker
 from fastapi_admin2.backends.sqla.toolings import include_where_condition_by_pk

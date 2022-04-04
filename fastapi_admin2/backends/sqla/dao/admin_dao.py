@@ -5,7 +5,7 @@ from sqlalchemy.exc import MultipleResultsFound, NoResultFound, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from fastapi_admin2.backends.sqla.models import SqlalchemyAdminModel
-from fastapi_admin2.base.entities import AbstractAdmin
+from fastapi_admin2.domain.entities import AbstractAdmin
 from fastapi_admin2.providers.security.dependencies import EntityNotFound, AdminDaoProto
 
 

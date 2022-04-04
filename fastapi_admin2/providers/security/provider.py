@@ -9,7 +9,7 @@ from starlette.responses import RedirectResponse, Response
 from starlette.status import HTTP_303_SEE_OTHER, HTTP_401_UNAUTHORIZED
 
 from fastapi_admin2 import constants
-from fastapi_admin2.base.entities import AbstractAdmin
+from fastapi_admin2.domain.entities import AbstractAdmin
 from fastapi_admin2.depends import get_resources
 from fastapi_admin2.providers import Provider
 from fastapi_admin2.providers.security.dependencies import AdminDaoDependencyMarker, EntityNotFound, \
@@ -17,7 +17,7 @@ from fastapi_admin2.providers.security.dependencies import AdminDaoDependencyMar
 from fastapi_admin2.providers.security.dto import InitAdmin, RenewPasswordCredentials, LoginCredentials
 from fastapi_admin2.providers.security.password_hashing.protocol import HashVerifyFailedError, \
     PasswordHasherProto
-from fastapi_admin2.providers.security.responses import to_init_page, to_login_page
+from fastapi_admin2.providers.security.responses import to_init_page, to_login_page, unauthorized
 from fastapi_admin2.utils.depends import get_dependency_from_request_by_marker
 from fastapi_admin2.utils.files import FileManager
 
@@ -88,18 +88,13 @@ class SecurityProvider(Provider):
             login_credentials: LoginCredentials = Depends(LoginCredentials.as_form),
             admin_dao: AdminDaoProto = Depends(AdminDaoDependencyMarker),
     ) -> Response:
-        unauthorized_response = await self.templates.create_html_response(
-            self.template_name,
-            status_code=HTTP_401_UNAUTHORIZED,
-            context={"request": request, "error": request.state.t("login_failed")},
-        )
         try:
             admin = await admin_dao.get_one_admin_by_filters(username=login_credentials.username)
         except EntityNotFound:
-            return unauthorized_response
+            return await unauthorized(self.template_name, request)
         else:
             if self._is_password_hash_is_invalid(admin, login_credentials.password):
-                return unauthorized_response
+                return await unauthorized(self.template_name, request)
 
             if self._password_hasher.is_rehashing_required(admin.password):
                 await admin_dao.update_admin({}, password=self._password_hasher.hash(admin.password))

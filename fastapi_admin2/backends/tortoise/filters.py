@@ -1,6 +1,6 @@
 from typing import Any, Literal
 
-from fastapi_admin2.widgets.filters import BaseSearchFilter, BaseDatetimeRangeFilter, BaseDateRangeFilter, \
+from fastapi_admin2.widgets.filters import BaseSearchFilter, BaseDateTimeRangeFilter, BaseDateRangeFilter, \
     BaseEnumFilter, BaseBooleanFilter
 
 SearchMode = Literal[
@@ -13,15 +13,15 @@ TORTOISE_EQUAL_OP = ""
 
 class Search(BaseSearchFilter):
 
-    def __init__(self, name: str, label: str, search_mode: SearchMode = "equal", **context: Any):
+    def __init__(self, name: str, label: str, search_mode: SearchMode = "equal", **additional_context: Any):
         """
 
         :param name:
         :param label:
         :param search_mode: equal,contains,icontains,startswith,istartswith,endswith,iendswith,iexact,search
-        :param context:
+        :param additional_context:
         """
-        super().__init__(name, label, **context)
+        super().__init__(name, label, **additional_context)
         if search_mode == "equal":
             self._search_mode = ""
         else:
@@ -36,7 +36,7 @@ class DateRange(BaseDateRangeFilter):
     operator = TORTOISE_EQUAL_OP
 
 
-class DateTimeRange(BaseDatetimeRangeFilter, DateRange):
+class DateTimeRange(BaseDateTimeRangeFilter, DateRange):
     pass
 
 

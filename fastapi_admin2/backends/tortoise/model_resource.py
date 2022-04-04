@@ -65,7 +65,7 @@ class Model(AbstractModelResource):
                 m2m_ret[name] = await input_.model.filter(pk__in=value)
             else:
                 v = data.get(name)
-                value = await input_.parse(v)
+                value = await input_.parse_input(v)
                 if value is None:
                     continue
                 ret[name] = value

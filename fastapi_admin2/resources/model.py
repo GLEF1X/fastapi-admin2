@@ -174,7 +174,7 @@ class AbstractModelResource(Resource, abc.ABC):
                     raise KeyError
             except KeyError:
                 continue
-            params[filter_.name] = await filter_.parse(matched_filter_value)
+            params[filter_.name] = await filter_.parse_input(matched_filter_value)
         return params
 
     async def render_filters(self, request: Request, values: Optional[Dict[str, Any]] = None) -> List[str]:

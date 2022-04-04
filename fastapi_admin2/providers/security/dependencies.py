@@ -1,6 +1,6 @@
 from typing import Protocol, Any, Dict
 
-from fastapi_admin2.base.entities import AbstractAdmin
+from fastapi_admin2.domain.entities import AbstractAdmin
 from fastapi_admin2.exceptions import DatabaseError
 from fastapi_admin2.utils.depends import DependencyMarker
 

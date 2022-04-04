@@ -15,10 +15,10 @@ from fastapi_admin2.constants import BASE_DIR
 
 class JinjaTemplates:
 
-    def __init__(self, directory: Optional[Path] = None):
-        self._directory = directory
-        if self._directory is None:
-            self._directory = BASE_DIR / "templates"
+    def __init__(self, templates_directory: Optional[Path] = None):
+        self._templates_directory = templates_directory
+        if self._templates_directory is None:
+            self._templates_directory = BASE_DIR / "templates"
         self.env = self._create_env()
 
     async def create_html_response(
@@ -54,7 +54,7 @@ class JinjaTemplates:
 
     def _create_env(self) -> Environment:
         env = Environment(
-            loader=FileSystemLoader(self._directory),
+            loader=FileSystemLoader(self._templates_directory),
             autoescape=select_autoescape(["html", "xml"]),
             bytecode_cache=FileSystemBytecodeCache(),
             enable_async=True
