@@ -3,10 +3,10 @@ from typing import Union
 
 from starlette.datastructures import UploadFile
 
-from fastapi_admin2.utils.files.protocol import FileManager, Link
+from fastapi_admin2.utils.files.base import FileManager, Link
 
 
-class StaticFilesManager:
+class StaticFilesManager(FileManager):
 
     def __init__(self, file_uploader: FileManager, static_path_prefix: str = "/static/uploads"):
         self._file_uploader = file_uploader

@@ -6,12 +6,12 @@ import anyio
 from starlette.datastructures import UploadFile
 
 from fastapi_admin2.exceptions import FileExtNotAllowed, FileMaxSizeLimit
-from fastapi_admin2.utils.files.protocol import Link
+from fastapi_admin2.utils.files.base import Link, FileManager
 
 DEFAULT_MAX_FILE_SIZE = 1024 ** 3
 
 
-class OnPremiseFileManager:
+class OnPremiseFileManager(FileManager):
     def __init__(
             self,
             uploads_dir: os.PathLike,
