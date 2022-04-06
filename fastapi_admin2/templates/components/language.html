@@ -14,13 +14,11 @@
         </svg>
     </a>
     <div class="dropdown-menu  dropdown-menu-arrow">
-        <a class="dropdown-item"
-           href="{{ {'language':'en'}|current_page_with_params }}">
-            <span class="me-2">🇺🇸</span>English
-        </a>
-        <a class="dropdown-item"
-           href="{{ {'language':'ru'}|current_page_with_params }}">
-            <span class="me-2">🇷🇺</span>Русский
-        </a>
+        {% for lang in available_languages %}
+            <a class="dropdown-item"
+               href="{{ {'language': lang.alpha_2} |current_page_with_params }}">
+               {% if current_locale == lang.alpha_2 %} ⚈ {% endif %} {{ lang.name }}
+            </a>
+        {% endfor %}
     </div>
 </div>

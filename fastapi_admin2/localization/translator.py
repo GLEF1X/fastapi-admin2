@@ -1,11 +1,19 @@
 import abc
 import contextlib
+from dataclasses import dataclass
 from gettext import GNUTranslations
 from pathlib import Path
-from typing import Dict, Optional, Tuple, ContextManager
+from typing import Dict, Optional, ContextManager, Set
 
 from fastapi_admin2.default_settings import PATH_TO_LOCALES
 from fastapi_admin2.localization.lazy_proxy import LazyProxy
+
+
+@dataclass(frozen=True, slots=True)
+class Language:
+    name: str
+    flag: str
+    code: str
 
 
 class Translator(abc.ABC):
@@ -23,7 +31,7 @@ class Translator(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def available_locales(self) -> Tuple[str, ...]:
+    def available_translations(self) -> Set[str]:
         pass
 
     @abc.abstractmethod
@@ -64,8 +72,8 @@ class I18nTranslator(Translator):
         return self._default_locale
 
     @property
-    def available_locales(self) -> Tuple[str, ...]:
-        return tuple(self._locales.keys())
+    def available_translations(self) -> Set[str]:
+        return set(self._locales.keys())
 
     @contextlib.contextmanager
     def internationalized(self, new_locale: str) -> ContextManager[None]:
