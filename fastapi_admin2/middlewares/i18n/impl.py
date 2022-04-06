@@ -9,9 +9,9 @@ from starlette.responses import Response
 from starlette.types import ASGIApp
 
 from fastapi_admin2.exceptions import RequiredThirdPartyLibNotInstalled
-from fastapi_admin2.localization.exceptions import UnableToExtractLocaleFromRequestError
-from fastapi_admin2.localization.translator import Translator, I18nTranslator
-from fastapi_admin2.localization.utils import get_locale_from_request
+from fastapi_admin2.i18n.exceptions import UnableToExtractLocaleFromRequestError
+from fastapi_admin2.i18n.translator import Translator, I18nTranslator
+from fastapi_admin2.i18n.utils import get_locale_from_request
 
 try:
     from babel import Locale
@@ -110,6 +110,6 @@ def _raise_if_babel_not_installed() -> None:
 
     raise RequiredThirdPartyLibNotInstalled(
         "Babel",
-        thing_that_cant_work_without_lib="localization",
+        thing_that_cant_work_without_lib="i18n",
         can_be_installed_with_ext="i18n"
     )
