@@ -17,7 +17,7 @@ from fastapi_admin2.app import FastAPIAdmin
 from fastapi_admin2.backends.sqla import SQLAlchemyBackend
 from fastapi_admin2.providers.security import SecurityProvider
 from fastapi_admin2.providers.security.password_hashing.argon2_cffi import Argon2PasswordHasher
-from fastapi_admin2.utils.files import OnPremiseFileManager, StaticFilesManager
+from fastapi_admin2.utils.files.s3 import S3FileManager
 
 
 class ApplicationBuilder:
@@ -75,8 +75,12 @@ class ApplicationBuilder:
             providers=[
                 SecurityProvider(
                     login_logo_url="https://preview.tabler.io/static/logo.svg",
-                    file_manager=StaticFilesManager(
-                        OnPremiseFileManager(uploads_dir=BASE_DIR / "static" / "uploads")
+                    file_manager=S3FileManager(
+                        bucket_name=self._settings.s3.bucket_name,
+                        access_key=self._settings.s3.access_key,
+                        secret_key=self._settings.s3.secret_key,
+                        region=self._settings.s3.region,
+                        file_identifier_prefix=self._settings.s3.file_identifier_prefix,
                     ),
                     redis=redis,
                     password_hasher=Argon2PasswordHasher()
@@ -108,4 +112,4 @@ application_builder = ApplicationBuilder()
 app = application_builder.build_application()
 
 if __name__ == '__main__':
-    uvicorn.run(app)
+    uvicorn.run(app, port=8080)
