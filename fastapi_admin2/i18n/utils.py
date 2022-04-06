@@ -1,6 +1,6 @@
 from starlette.requests import Request
 
-from fastapi_admin2.localization.exceptions import UnableToExtractLocaleFromRequestError
+from fastapi_admin2.i18n.exceptions import UnableToExtractLocaleFromRequestError
 
 
 def get_locale_from_request(request: Request) -> str:

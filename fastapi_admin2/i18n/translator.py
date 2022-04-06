@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict, Optional, ContextManager, Set
 
 from fastapi_admin2.default_settings import PATH_TO_LOCALES
-from fastapi_admin2.localization.lazy_proxy import LazyProxy
+from fastapi_admin2.i18n.lazy_proxy import LazyProxy
 
 
 @dataclass(frozen=True, slots=True)

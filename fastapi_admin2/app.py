@@ -12,13 +12,14 @@ from starlette.routing import BaseRoute
 from starlette.status import HTTP_403_FORBIDDEN, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND, \
     HTTP_500_INTERNAL_SERVER_ERROR
 
-from fastapi_admin2.localization.middleware import AbstractI18nMiddleware
+
 from fastapi_admin2.providers import Provider
 from fastapi_admin2.utils.templating import JinjaTemplates
+from .middlewares.i18n.base import AbstractI18nMiddleware
+from .middlewares.i18n.impl import I18nMiddleware
 from .middlewares.theme import theme_middleware
 from .middlewares.templating import create_template_middleware
-from .localization import I18nMiddleware
-from .localization.translator import I18nTranslator
+from .i18n.translator import I18nTranslator
 from .resources import AbstractModelResource as ModelResource
 from .resources import Dropdown
 from .resources.base import Resource

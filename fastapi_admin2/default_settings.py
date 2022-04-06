@@ -17,5 +17,5 @@ CAPTCHA_ID = "captcha:{captcha_id}"
 LOGIN_ERROR_TIMES = "login_error_times:{ip}"
 LOGIN_USER = "login_user:{session_id}"
 
-# localization
-PATH_TO_LOCALES = BASE_DIR / "localization" / "locales"
+# i18n
+PATH_TO_LOCALES = BASE_DIR / "i18n" / "locales"

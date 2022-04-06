@@ -1,6 +1,6 @@
 import functools
 from abc import ABC, abstractmethod
-from typing import cast, Optional, List, Protocol
+from typing import Protocol, Optional, List
 
 import pycountry
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -8,18 +8,8 @@ from starlette.requests import Request
 from starlette.responses import Response
 from starlette.types import ASGIApp
 
-from fastapi_admin2.exceptions import RequiredThirdPartyLibNotInstalled
-from fastapi_admin2.localization.exceptions import UnableToExtractLocaleFromRequestError
-from fastapi_admin2.localization.translator import Translator, I18nTranslator
-from fastapi_admin2.localization.utils import get_locale_from_request
-
-try:
-    from babel import Locale
-
-    babel_lib_installed = True
-except ImportError:  # pragma: no cover
-    babel_lib_installed = False
-    Locale = None
+from fastapi_admin2.i18n import Translator
+from fastapi_admin2.i18n.translator import I18nTranslator
 
 
 class Language(Protocol):
@@ -78,38 +68,3 @@ class AbstractI18nMiddleware(BaseHTTPMiddleware, ABC):
         :param request:
         :return:
         """
-
-
-class I18nMiddleware(AbstractI18nMiddleware):
-    """
-    Simple I18n middleware.
-    Chooses language code from the request
-    """
-
-    def __init__(self, app: ASGIApp,
-                 translator: Optional[Translator] = None, ) -> None:
-        super().__init__(app, translator)
-        _raise_if_babel_not_installed()
-
-    async def get_locale(self, request: Request) -> str:
-
-        try:
-            locale = get_locale_from_request(request)
-        except UnableToExtractLocaleFromRequestError:
-            return self._translator.default_locale
-
-        parsed_locale = Locale.parse(locale)
-        if parsed_locale.language not in self._translator.available_translations:
-            return self._translator.default_locale
-        return cast(str, parsed_locale.language)
-
-
-def _raise_if_babel_not_installed() -> None:
-    if babel_lib_installed:  # pragma: no cover
-        return None
-
-    raise RequiredThirdPartyLibNotInstalled(
-        "Babel",
-        thing_that_cant_work_without_lib="localization",
-        can_be_installed_with_ext="i18n"
-    )

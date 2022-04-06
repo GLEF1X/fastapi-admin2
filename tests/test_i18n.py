@@ -4,12 +4,12 @@ import pytest
 from fastapi import FastAPI
 from starlette.requests import Request
 
-from fastapi_admin2.localization import Translator, I18nMiddleware
-from fastapi_admin2.localization import get_i18n, lazy_gettext, gettext
+from fastapi_admin2.i18n import Translator, I18nMiddleware
+from fastapi_admin2.i18n import get_i18n, lazy_gettext, gettext
 from tests.conftest import DATA_DIR
 
 
-@pytest.fixture(name="localization")
+@pytest.fixture(name="i18n")
 def i18n_fixture() -> Translator:
     return Translator(path_to_default_translations=DATA_DIR / "locales")
 
