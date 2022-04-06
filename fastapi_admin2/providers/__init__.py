@@ -1,6 +1,6 @@
 import typing
 
-from fastapi_admin2.templating import JinjaTemplates
+from fastapi_admin2.utils.templating import JinjaTemplates
 
 if typing.TYPE_CHECKING:
     from fastapi_admin2.app import FastAPIAdmin

@@ -160,7 +160,7 @@
                     <li class="page-item {% if page_num <= 1 %} disabled {% endif %}">
                         <a
                                 class="page-link"
-                                href="{{ {'page_num':page_num - 1}|current_page_with_params }}"
+                                href="?page_num={{ page_num - 1 }}"
                                 tabindex="-1"
                                 aria-disabled="true"
                         >
@@ -174,7 +174,7 @@
                         <li class="page-item {% if i == (page_num or 1) %} active {% endif %}">
                             <a
                                     class="page-link"
-                                    href="{{ {'page_num':i}|current_page_with_params }}"
+                                    href="?page_num={{ i }}"
                             >{{ i }}</a
                             >
                         </li>
@@ -184,7 +184,7 @@
                         >
                             <a
                                     class="page-link"
-                                    href="{{ {'page_num':page_num + 1}|current_page_with_params }}"
+                                    href="?page_num={{ page_num + 1 }}"
                             >
                                 {{ _('next_page') }}
                                 <i class="ti ti-chevron-right"></i>

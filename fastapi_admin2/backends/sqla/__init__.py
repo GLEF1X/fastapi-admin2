@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Type
 
 from fastapi import FastAPI
-from sqlalchemy.ext.asyncio import AsyncSession, AsyncEngine
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 from fastapi_admin2.backends.sqla.dao.admin_dao import SqlalchemyAdminDao

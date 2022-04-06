@@ -14,6 +14,9 @@ from starlette.status import HTTP_403_FORBIDDEN, HTTP_401_UNAUTHORIZED, HTTP_404
 
 from fastapi_admin2.localization.middleware import AbstractI18nMiddleware
 from fastapi_admin2.providers import Provider
+from fastapi_admin2.utils.templating import JinjaTemplates
+from .middlewares.theme import theme_middleware
+from .middlewares.templating import create_template_middleware
 from .localization import I18nMiddleware
 from .localization.translator import I18nTranslator
 from .resources import AbstractModelResource as ModelResource
@@ -21,7 +24,6 @@ from .resources import Dropdown
 from .resources.base import Resource
 from .responses import server_error_exception, not_found, forbidden, unauthorized
 from .routes import resources
-from .templating import JinjaTemplates, add_render_function_to_request
 
 
 class ORMBackend(Protocol):
@@ -96,14 +98,15 @@ class FastAPIAdmin(FastAPI):
 
         self.templates = JinjaTemplates()
         self.templates.env.add_extension("jinja2.ext.i18n")
-        self.templates.env.install_gettext_callables(translator.gettext, translator.gettext)
-        self.middleware("http")(add_render_function_to_request)
+        self.middleware("http")(create_template_middleware(self.templates))
         self.dependency_overrides[JinjaTemplates] = lambda: self.templates
 
         if i18n_middleware_class is None:
             i18n_middleware_class = I18nMiddleware
         self.add_middleware(i18n_middleware_class, translator=translator)
         self.language_switch = True
+
+        self.middleware('http')(theme_middleware)
 
         self._orm_backend = orm_backend
         self._orm_backend.configure(self)

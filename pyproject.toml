@@ -48,6 +48,7 @@ asyncpg = { git = "https://github.com/MagicStack/asyncpg", branch = "master"}
 dynaconf = "^3.1.7"
 
 aioboto3 = "^9.5.0"
+pycountry = "^22.3.5"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

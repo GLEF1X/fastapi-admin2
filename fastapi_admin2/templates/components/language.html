@@ -16,7 +16,7 @@
     <div class="dropdown-menu  dropdown-menu-arrow">
         {% for lang in available_languages %}
             <a class="dropdown-item"
-               href="{{ {'language': lang.alpha_2} |current_page_with_params }}">
+               href="?language={{ lang.alpha_2 }}">
                {% if current_locale == lang.alpha_2 %} ⚈ {% endif %} {{ lang.name }}
             </a>
         {% endfor %}
