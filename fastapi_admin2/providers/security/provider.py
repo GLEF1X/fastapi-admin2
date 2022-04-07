@@ -47,7 +47,9 @@ class SecurityProvider(Provider):
             logout_path: str = "/logout",
             login_page_template_name: str = "providers/login/login.html",
             login_logo_url: Optional[str] = None,
-            login_title_translation_key: str = "login_title"
+            login_title_translation_key: str = "login_title",
+            keep_logined_in_seconds: int = 3600,
+            keep_logined_with_checked_remember_me_in_seconds: int = 3600 * 24 * 7,
     ):
         self.login_path = login_path
         self.logout_path = logout_path
@@ -57,6 +59,8 @@ class SecurityProvider(Provider):
         self._password_hasher = password_hasher
         self._file_manager = file_manager
         self._redis = redis
+        self._keep_logined_with_checked_remember_me_in_seconds = keep_logined_with_checked_remember_me_in_seconds
+        self._keep_logined_in_seconds = keep_logined_in_seconds
 
     def register(self, app: "FastAPIAdmin") -> None:
         super(SecurityProvider, self).register(app)
@@ -111,10 +115,10 @@ class SecurityProvider(Provider):
 
         response = RedirectResponse(url=request.app.admin_path, status_code=HTTP_303_SEE_OTHER)
         if login_credentials.remember_me:
-            expires_in_seconds = 3600 * 24 * 30
+            expires_in_seconds = self._keep_logined_with_checked_remember_me_in_seconds
             response.set_cookie("remember_me", "on")
         else:
-            expires_in_seconds = 3600
+            expires_in_seconds = self._keep_logined_in_seconds
             response.delete_cookie("remember_me")
 
         session_id = uuid.uuid4().hex
