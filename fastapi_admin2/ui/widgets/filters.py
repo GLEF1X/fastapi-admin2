@@ -7,7 +7,7 @@ import pendulum
 from starlette.requests import Request
 
 from fastapi_admin2.default_settings import DATE_FORMAT_MOMENT
-from fastapi_admin2.widgets.exceptions import FilterValidationError
+from fastapi_admin2.ui.widgets.exceptions import FilterValidationError
 
 Q = TypeVar("Q")
 

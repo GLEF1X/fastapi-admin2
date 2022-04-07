@@ -9,7 +9,7 @@ from fastapi_admin2.domain.entities import ResourceList
 from fastapi_admin2.depends import get_model_resource, get_orm_model_by_resource_name
 from fastapi_admin2.backends.sqla.markers import AsyncSessionDependencyMarker
 from fastapi_admin2.backends.sqla.toolings import include_where_condition_by_pk
-from fastapi_admin2.resources.model import AbstractModelResource
+from fastapi_admin2.ui.resources.model import AbstractModelResource
 
 
 async def get_resource_list(request: Request,

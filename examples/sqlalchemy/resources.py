@@ -13,9 +13,9 @@ from fastapi_admin2.backends.sqla.filters import full_text_search_op
 from fastapi_admin2.backends.sqla.model_resource import Model
 from fastapi_admin2.default_settings import DATETIME_FORMAT
 from fastapi_admin2.enums import HTTPMethod
-from fastapi_admin2.resources import Action, Dropdown, Field, Link, ToolbarAction
+from fastapi_admin2.ui.resources import Action, Dropdown, Field, Link, ToolbarAction
 from fastapi_admin2.utils.files import OnPremiseFileManager, StaticFilesManager
-from fastapi_admin2.widgets import displays, inputs
+from fastapi_admin2.ui.widgets import displays, inputs
 
 
 def register(app: FastAPIAdmin):

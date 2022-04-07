@@ -15,10 +15,10 @@ from fastapi_admin2.backends.sqla.field_converters import (
     IntegerColumnToFieldConverter
 )
 from fastapi_admin2.backends.sqla.filters import Search
-from fastapi_admin2.resources import AbstractModelResource
-from fastapi_admin2.resources.field import Field, ComputedField
-from fastapi_admin2.resources.model import Q
-from fastapi_admin2.widgets import inputs, displays
+from fastapi_admin2.ui.resources import AbstractModelResource
+from fastapi_admin2.ui.resources.column import Field, ComputedField
+from fastapi_admin2.ui.resources.model import Q
+from fastapi_admin2.ui.widgets import inputs, displays
 
 
 class Model(AbstractModelResource):

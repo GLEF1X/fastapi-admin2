@@ -8,13 +8,13 @@ from starlette.requests import Request
 
 from fastapi_admin2.enums import HTTPMethod
 from fastapi_admin2.exceptions import FieldNotFoundError
-from fastapi_admin2.resources.action import ToolbarAction, Action
-from fastapi_admin2.resources.base import Resource
-from fastapi_admin2.resources.field import Field, ComputedField
-from fastapi_admin2.widgets import inputs, displays
-from fastapi_admin2.widgets.displays import Display
-from fastapi_admin2.widgets.filters import AbstractFilter
-from fastapi_admin2.widgets.inputs import Input
+from fastapi_admin2.ui.resources.action import ToolbarAction, Action
+from fastapi_admin2.ui.resources.base import Resource
+from fastapi_admin2.ui.resources.column import Field, ComputedField
+from fastapi_admin2.ui.widgets import inputs, displays
+from fastapi_admin2.ui.widgets.displays import Display
+from fastapi_admin2.ui.widgets.filters import AbstractFilter
+from fastapi_admin2.ui.widgets.inputs import Input
 
 Q = TypeVar("Q", bound=Any)
 T = TypeVar("T")

@@ -1,7 +1,7 @@
 from sqlalchemy import Column
 
-from fastapi_admin2.resources.model import ColumnToFieldConverter, FieldSpec
-from fastapi_admin2.widgets import displays, inputs
+from fastapi_admin2.ui.resources.model import ColumnToFieldConverter, FieldSpec
+from fastapi_admin2.ui.widgets import displays, inputs
 
 
 class BooleanColumnToFieldConverter(ColumnToFieldConverter):

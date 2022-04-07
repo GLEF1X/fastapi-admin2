@@ -12,7 +12,7 @@ from fastapi_admin2.backends.sqla.models import SqlalchemyAdminModel
 from fastapi_admin2.backends.sqla.queriers import get_resource_list, delete_resource_by_id, \
     bulk_delete_resources
 from fastapi_admin2.providers.security.dependencies import AdminDaoDependencyMarker
-from fastapi_admin2.routes.dependencies import ModelListDependencyMarker, DeleteOneDependencyMarker, \
+from fastapi_admin2.controllers.dependencies import ModelListDependencyMarker, DeleteOneDependencyMarker, \
     DeleteManyDependencyMarker
 from . import filters
 from .model_resource import Model

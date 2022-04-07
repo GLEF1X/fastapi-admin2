@@ -7,7 +7,7 @@ from sqlalchemy.sql.operators import ilike_op, like_op, match_op, is_
 
 from fastapi_admin2.backends.sqla.toolings import parse_like_term
 from fastapi_admin2.default_settings import DATE_FORMAT_MOMENT
-from fastapi_admin2.widgets.filters import BaseSearchFilter, BaseDateRangeFilter, BaseDateTimeRangeFilter, \
+from fastapi_admin2.ui.widgets.filters import BaseSearchFilter, BaseDateRangeFilter, BaseDateTimeRangeFilter, \
     BaseEnumFilter, BaseBooleanFilter, DateRangeDTO
 
 full_text_search_op = match_op

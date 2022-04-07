@@ -4,9 +4,8 @@ from typing import Optional, Any, Callable
 
 from starlette.requests import Request
 
-from fastapi_admin2 import default_settings
 from fastapi_admin2.default_settings import DATETIME_FORMAT, DATE_FORMAT
-from fastapi_admin2.widgets import Widget
+from fastapi_admin2.ui.widgets import Widget
 
 
 class Display(Widget):

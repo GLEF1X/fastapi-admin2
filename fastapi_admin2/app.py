@@ -20,11 +20,11 @@ from .middlewares.i18n.impl import I18nMiddleware
 from .middlewares.theme import theme_middleware
 from .middlewares.templating import create_template_middleware
 from .i18n.translator import I18nTranslator
-from .resources import AbstractModelResource as ModelResource
-from .resources import Dropdown
-from .resources.base import Resource
+from .ui.resources import AbstractModelResource as ModelResource
+from .ui.resources import Dropdown
+from .ui.resources.base import Resource
 from .responses import server_error_exception, not_found, forbidden, unauthorized
-from .routes import resources
+from .controllers import resources
 
 
 class ORMBackend(Protocol):

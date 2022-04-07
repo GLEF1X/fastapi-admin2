@@ -6,7 +6,7 @@ from starlette.requests import Request
 from starlette.status import HTTP_404_NOT_FOUND
 
 from fastapi_admin2.exceptions import InvalidResource
-from fastapi_admin2.resources import Dropdown, Link, AbstractModelResource, Resource
+from fastapi_admin2.ui.resources import Dropdown, Link, AbstractModelResource, Resource
 
 
 def get_orm_model_by_resource_name(

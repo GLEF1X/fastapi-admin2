@@ -8,7 +8,7 @@ from starlette.requests import Request
 
 from fastapi_admin2.default_settings import DATE_FORMAT_FLATPICKR
 from fastapi_admin2.utils.files import FileManager
-from fastapi_admin2.widgets import Widget
+from fastapi_admin2.ui.widgets import Widget
 
 
 class Input(Widget):
