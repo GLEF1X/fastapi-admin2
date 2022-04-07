@@ -11,7 +11,7 @@ from fastapi_admin2.domain.entities import ResourceList
 from fastapi_admin2.depends import get_orm_model_by_resource_name, get_model_resource, get_resources
 from fastapi_admin2.backends.sqla.markers import AsyncSessionDependencyMarker
 from fastapi_admin2.ui.resources import AbstractModelResource
-from fastapi_admin2.responses import redirect
+from fastapi_admin2.utils.responses import redirect
 from fastapi_admin2.controllers.dependencies import ModelListDependencyMarker, DeleteOneDependencyMarker, \
     DeleteManyDependencyMarker
 

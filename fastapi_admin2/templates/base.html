@@ -16,25 +16,12 @@
     <script src="https://unpkg.com/@tabler/core@latest/dist/js/demo.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/jquery/latest/jquery.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
-    <script type="text/javascript">
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-        }
-
-        document.addEventListener("DOMContentLoaded", function (event) {
-            if (getCookie('dark_mode') === 'yes') {
-                document.body.classList.add('theme-dark');
-            }
-        });
-    </script>
     {% block head %}
     {% endblock %}
     <title>{{ title }}</title>
 </head>
 {% block outer_body %}
-    <body>
+    <body {% if request.cookies.get('dark_mode') == 'yes' %} class="theme-dark" {% endif %}>
     {% block body %}
     {% endblock %}
     </body>

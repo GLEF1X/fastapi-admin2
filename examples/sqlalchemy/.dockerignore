@@ -1,4 +1,4 @@
-examples/sqlalchemy/deploy
+deploy/*
 __pycache__
 *.pyc
 *.pyo

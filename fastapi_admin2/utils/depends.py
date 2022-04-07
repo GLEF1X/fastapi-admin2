@@ -38,4 +38,4 @@ def get_fastapi_admin_instance_from_request(request: Request) -> FastAPIAdmin:
                 continue
             return route.app
 
-    raise DependencyResolvingError()
+    raise DependencyResolvingError("FastAPI admin instance not found in request")

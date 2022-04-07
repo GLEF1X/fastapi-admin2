@@ -23,7 +23,7 @@ from .i18n.translator import I18nTranslator
 from .ui.resources import AbstractModelResource as ModelResource
 from .ui.resources import Dropdown
 from .ui.resources.base import Resource
-from .responses import server_error_exception, not_found, forbidden, unauthorized
+from fastapi_admin2.utils.responses import server_error_exception, not_found, forbidden, unauthorized
 from .controllers import resources
 
 

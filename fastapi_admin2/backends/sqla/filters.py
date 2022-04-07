@@ -1,7 +1,7 @@
 from enum import Enum as EnumCLS
 from typing import Any, Callable, Dict, Optional, Type
 
-from sqlalchemy import between, false, true, Column
+from sqlalchemy import between, false, true, Column, func
 from sqlalchemy.sql import Select
 from sqlalchemy.sql.operators import ilike_op, like_op, match_op, is_
 
@@ -46,7 +46,7 @@ class Search(BaseSearchFilter):
         if self._sqlalchemy_operator in {ilike_op, like_op}:
             return parse_like_term(value)
 
-        return value
+        return func.plainto_tsquery(value)
 
 
 class DateRange(BaseDateRangeFilter):
@@ -65,7 +65,7 @@ class DateRange(BaseDateRangeFilter):
 
 class DateTimeRange(BaseDateTimeRangeFilter):
     def __init__(self, column: Column, name: str, date_format: str = DATE_FORMAT_MOMENT, placeholder: str = "",
-                 help_text: str = "", null: bool = True, **additional_context: Any):
+                 null: bool = True, **additional_context: Any):
         super().__init__(name, date_format, placeholder, null, **additional_context)
         self._column = column
 
