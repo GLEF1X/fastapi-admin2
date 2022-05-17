@@ -7,13 +7,13 @@ from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 from starlette.status import HTTP_303_SEE_OTHER
 
-from fastapi_admin2.domain.entities import ResourceList
-from fastapi_admin2.depends import get_orm_model_by_resource_name, get_model_resource, get_resources
 from fastapi_admin2.backends.sqla.markers import AsyncSessionDependencyMarker
-from fastapi_admin2.ui.resources import AbstractModelResource
-from fastapi_admin2.utils.responses import redirect
 from fastapi_admin2.controllers.dependencies import ModelListDependencyMarker, DeleteOneDependencyMarker, \
     DeleteManyDependencyMarker
+from fastapi_admin2.depends import get_orm_model_by_resource_name, get_model_resource, get_resources
+from fastapi_admin2.domain.entities import ResourceList
+from fastapi_admin2.ui.resources import AbstractModelView
+from fastapi_admin2.utils.responses import redirect
 
 router = APIRouter()
 
@@ -22,10 +22,8 @@ router = APIRouter()
 async def list_view(
         request: Request,
         resources: List[Dict[str, Any]] = Depends(get_resources),
-        model_resource: AbstractModelResource = Depends(get_model_resource),
+        model_resource: AbstractModelView = Depends(get_model_resource),
         resource_name: str = Path(..., alias="resource"),
-        page_size: int = 10,
-        page_num: int = 1,
         resource_list: ResourceList = Depends(ModelListDependencyMarker)
 ) -> Response:
     filters = await model_resource.render_filters(request)
@@ -43,11 +41,11 @@ async def list_view(
         "resource": resource_name,
         "model_resource": model_resource,
         "resource_label": model_resource.label,
-        "page_size": page_size,
-        "page_num": page_num,
-        "total": resource_list.total_entries_count,
-        "from": page_size * (page_num - 1) + 1,
-        "to": page_size * page_num,
+        "page_size": resource_list.paging_meta.page_size,
+        "page_num": resource_list.paging_meta.page_num,
+        "total": resource_list.paging_meta.total_pages,
+        "from": resource_list.paging_meta.from_item,
+        "to": resource_list.paging_meta.to_item,
         "page_title": model_resource.page_title,
         "page_pre_title": model_resource.page_pre_title,
     }
@@ -74,7 +72,7 @@ async def update_view(
         request: Request,
         resource: str = Path(...),
         id_: str = Path(..., alias="id"),
-        model_resource: AbstractModelResource = Depends(get_model_resource),
+        model_resource: AbstractModelView = Depends(get_model_resource),
         resources=Depends(get_resources),
         model=Depends(get_orm_model_by_resource_name),
         session: AsyncSession = Depends(AsyncSessionDependencyMarker)
@@ -111,7 +109,7 @@ async def create_view(
         request: Request,
         resource: str = Path(...),
         resources=Depends(get_resources),
-        model_resource: AbstractModelResource = Depends(get_model_resource),
+        model_resource: AbstractModelView = Depends(get_model_resource),
 ):
     inputs = await model_resource.render_inputs(request)
     context = {
@@ -141,7 +139,7 @@ async def create(
         request: Request,
         resource: str = Path(...),
         resources=Depends(get_resources),
-        model_resource: AbstractModelResource = Depends(get_model_resource),
+        model_resource: AbstractModelView = Depends(get_model_resource),
         model: Type[Any] = Depends(get_orm_model_by_resource_name),
         session: AsyncSession = Depends(AsyncSessionDependencyMarker)
 ):

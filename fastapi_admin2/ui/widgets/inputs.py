@@ -7,8 +7,8 @@ from starlette.datastructures import UploadFile
 from starlette.requests import Request
 
 from fastapi_admin2.default_settings import DATE_FORMAT_FLATPICKR
-from fastapi_admin2.utils.files import FileManager
 from fastapi_admin2.ui.widgets import Widget
+from fastapi_admin2.utils.files import FileManager
 
 
 class Input(Widget):
@@ -16,7 +16,6 @@ class Input(Widget):
 
     def __init__(
             self,
-            *validators: Callable[..., bool],
             help_text: Optional[str] = None,
             default: Any = None,
             null: bool = False,
@@ -24,7 +23,6 @@ class Input(Widget):
     ):
         super().__init__(null=null, help_text=help_text, **context)
         self.default = default
-        self.validators = validators
 
     async def parse(self, value: Any):
         """
@@ -248,7 +246,7 @@ class File(Input):
 
     async def parse(self, value: Optional[UploadFile]):
         if value and value.filename:
-            return await self._file_manager.download_file(value)
+            return await self._file_manager.upload_file(value)
         return None
 
 

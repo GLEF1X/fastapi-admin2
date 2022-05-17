@@ -1,4 +1,3 @@
-import aioredis
 import uvicorn
 from dynaconf import Dynaconf
 from fastapi import FastAPI
@@ -17,7 +16,7 @@ from fastapi_admin2.app import FastAPIAdmin
 from fastapi_admin2.backends.sqla import SQLAlchemyBackend
 from fastapi_admin2.providers.security import SecurityProvider
 from fastapi_admin2.providers.security.password_hashing.argon2_cffi import Argon2PasswordHasher
-from fastapi_admin2.utils.files.s3 import S3FileManager
+from fastapi_admin2.utils.files import OnPremiseFileManager
 
 
 class ApplicationBuilder:
@@ -49,12 +48,6 @@ class ApplicationBuilder:
         self._main_app.add_event_handler("shutdown", create_on_shutdown_handler(self._main_app))
 
     def _setup_admin_panel(self) -> None:
-        redis = aioredis.from_url(
-            self._settings.redis_connection_uri,
-            decode_responses=True,
-            encoding="utf8",
-        )
-
         engine = create_async_engine(
             url=make_url(self._settings.postgres_connection_uri),
             echo=True,
@@ -75,14 +68,8 @@ class ApplicationBuilder:
             providers=[
                 SecurityProvider(
                     login_logo_url="https://preview.tabler.io/static/logo.svg",
-                    file_manager=S3FileManager(
-                        bucket_name=self._settings.s3.bucket_name,
-                        access_key=self._settings.s3.access_key,
-                        secret_key=self._settings.s3.secret_key,
-                        region=self._settings.s3.region,
-                        file_identifier_prefix=self._settings.s3.file_identifier_prefix,
-                    ),
-                    redis=redis,
+                    file_manager=OnPremiseFileManager(uploads_dir=BASE_DIR / "static" / "uploads"),
+                    redis_connection_uri=self._settings.redis_connection_uri,
                     password_hasher=Argon2PasswordHasher()
                 )
             ]
@@ -112,4 +99,4 @@ application_builder = ApplicationBuilder()
 app = application_builder.build_application()
 
 if __name__ == '__main__':
-    uvicorn.run(app, port=8080)
+    uvicorn.run(app, port=8000)

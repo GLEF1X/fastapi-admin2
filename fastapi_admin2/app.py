@@ -12,7 +12,6 @@ from starlette.routing import BaseRoute
 from starlette.status import HTTP_403_FORBIDDEN, HTTP_401_UNAUTHORIZED, HTTP_404_NOT_FOUND, \
     HTTP_500_INTERNAL_SERVER_ERROR
 
-
 from fastapi_admin2.providers import Provider
 from fastapi_admin2.utils.templating import JinjaTemplates
 from .middlewares.i18n.base import AbstractI18nMiddleware
@@ -20,7 +19,7 @@ from .middlewares.i18n.impl import I18nMiddleware
 from .middlewares.theme import theme_middleware
 from .middlewares.templating import create_template_middleware
 from .i18n.translator import I18nTranslator
-from .ui.resources import AbstractModelResource as ModelResource
+from .ui.resources import AbstractModelView as ModelResource
 from .ui.resources import Dropdown
 from .ui.resources.base import Resource
 from fastapi_admin2.utils.responses import server_error_exception, not_found, forbidden, unauthorized
@@ -95,16 +94,15 @@ class FastAPIAdmin(FastAPI):
         self.logo_url = logo_url
         self.favicon_url = favicon_url
 
-        translator = I18nTranslator()
-
         self.templates = JinjaTemplates()
         self.templates.env.add_extension("jinja2.ext.i18n")
         self.middleware("http")(create_template_middleware(self.templates))
         self.dependency_overrides[JinjaTemplates] = lambda: self.templates
 
         if i18n_middleware_class is None:
-            i18n_middleware_class = I18nMiddleware
-        self.add_middleware(i18n_middleware_class, translator=translator)
+            def i18n_middleware_class(*args, **kwargs):
+                return I18nMiddleware(*args, **kwargs, translator=I18nTranslator())
+        self.add_middleware(i18n_middleware_class)
         self.language_switch = True
 
         self.middleware('http')(theme_middleware)

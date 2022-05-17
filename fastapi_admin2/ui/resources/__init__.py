@@ -2,7 +2,7 @@ from .action import ToolbarAction, Action
 from .dropdown import Dropdown
 from .column import Field, ComputedField
 from .link import Link
-from .model import AbstractModelResource
+from .model import AbstractModelView
 from .base import Resource
 
 __all__ = (
@@ -13,5 +13,5 @@ __all__ = (
     'Field',
     'ComputedField',
     'Link',
-    'AbstractModelResource'
+    'AbstractModelView'
 )

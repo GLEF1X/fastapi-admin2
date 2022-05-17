@@ -9,7 +9,6 @@ license = "MIT"
 python = "^3.8"
 babel = "^2.9.1"
 aiofiles = "0.8.0"
-aioredis = "^2.0.1"
 fastapi = "^0.75.0"
 jinja2 = "*"
 python-multipart = "*"
@@ -17,6 +16,7 @@ pendulum = "2.1.2"
 argon2-cffi = "^21.3.0"
 orjson = "^3.6.6"
 pycountry = "^22.3.5"
+redis = "^4.3.1"
 
 [tool.poetry.dev-dependencies]
 # lint
@@ -42,13 +42,15 @@ sqlalchemy2-stubs = "0.0.2a21"
 types-aiofiles = "*"
 
 # subdeps of orm dialects
-asyncpg = { git = "https://github.com/MagicStack/asyncpg", branch = "master"}
+asyncpg = { git = "https://github.com/MagicStack/asyncpg", branch = "master" }
 
 # example
 dynaconf = "^3.1.7"
 
 aioboto3 = "^9.5.0"
 pycountry = "^22.3.5"
+minio = "^7.1.6"
+sqlapagination = { git = "https://github.com/GLEF1X/sqla-pagination" }
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -1,7 +1,8 @@
 import abc
 import asyncio
-from dataclasses import dataclass
-from typing import Type, Any, List, Union, Optional, TypeVar, Dict, Sequence, Hashable, Generic, Iterable
+from dataclasses import dataclass, field
+from typing import Type, Any, List, Union, Optional, TypeVar, Dict, Sequence, Hashable, Generic, Iterable, Callable, \
+    cast
 
 from starlette.datastructures import FormData
 from starlette.requests import Request
@@ -29,6 +30,7 @@ class RenderedFields:
 
 
 class ColumnToFieldConverter(abc.ABC, Generic[T]):
+    converts: Union[str, Sequence[str]] = ""
 
     def convert(self, column: T, field_name: str) -> Field:
         field_spec = self._convert_column_to_field_spec(column)
@@ -36,11 +38,15 @@ class ColumnToFieldConverter(abc.ABC, Generic[T]):
             name=field_spec.field_name or field_name,
             label=field_name.title(),
             display=field_spec.display,
-            input_=field_spec.input_
+            input=field_spec.input_
         )
 
     @abc.abstractmethod
     def _convert_column_to_field_spec(self, column: T) -> "FieldSpec":
+        pass
+
+    @abc.abstractmethod
+    def is_suitable(self, column: T) -> bool:
         pass
 
 
@@ -48,10 +54,11 @@ class ColumnToFieldConverter(abc.ABC, Generic[T]):
 class FieldSpec:
     input_: Input
     display: Display
+    validators: List[Callable[[Any], bool]] = field(default_factory=list)
     field_name: Optional[str] = None
 
 
-class AbstractModelResource(Resource, abc.ABC):
+class AbstractModelView(Resource, abc.ABC):
     model: Type[Any]
     fields: Sequence[Union[str, Field]] = ()
     page_pre_title: Optional[str] = None
@@ -68,13 +75,11 @@ class AbstractModelResource(Resource, abc.ABC):
     # Must be overwritten in subclasses
     _default_filter: Type[AbstractFilter]
 
-    converters: Dict[Hashable, ColumnToFieldConverter[Any]] = {}
+    converters: Optional[List[ColumnToFieldConverter]] = None
 
     paginator: Any = object()
 
     def __init__(self) -> None:
-        self._converters: Dict[Hashable, ColumnToFieldConverter[Any]] = {}
-
         self._normalized_filters = self._scaffold_filters()
         self.input_fields = self._scaffold_model_fields_for_input()
         self.display_fields = self._scaffold_model_fields_for_display()
@@ -88,7 +93,7 @@ class AbstractModelResource(Resource, abc.ABC):
             )
 
     @classmethod
-    async def from_http_request(cls, request: Request) -> "AbstractModelResource":
+    async def from_http_request(cls, request: Request) -> "AbstractModelView":
         model_resource = cls()
 
         actions, bulk_actions, toolbar_actions = await asyncio.gather(
@@ -166,12 +171,9 @@ class AbstractModelResource(Resource, abc.ABC):
         return rendered_inputs
 
     async def render_filters(self, request: Request) -> List[str]:
-        rendered_filters: List[str] = []
-        for filter_ in self._normalized_filters:
-            if isinstance(filter_, str):  # denotes that filter is a column name
-                filter_ = self._default_filter(name=filter_, label=filter_.title())
-            rendered_filters.append(await filter_.render(request))
-        return rendered_filters
+        return cast(List[str], await asyncio.gather(
+            *[f.render(request) for f in self._normalized_filters],
+        ))
 
     def get_field_labels(self, display: bool = True) -> List[str]:
         return self._get_fields_attr("label", display)
@@ -235,13 +237,14 @@ class AbstractModelResource(Resource, abc.ABC):
             ),
         ]
 
-    def _create_field_by_field_name(self, field_name: str) -> Field:
+    @abc.abstractmethod
+    def _create_field(self, field_name: str) -> Field:
         """
         Create field if you have passed on string to fields
         and rely only on built-in recognition of field type
 
         for instance:
-        >>> class MyModelResource(AbstractModelResource):
+        >>> class MyModelResource(AbstractModelView):
         >>>     model = SomeModel
         >>>     fields = ["id", "json_column", "some_column"]
 
@@ -250,20 +253,6 @@ class AbstractModelResource(Resource, abc.ABC):
         :param field_name:
         :return:
         """
-        column = self._get_column_by_name(field_name)
-        if not column:
-            raise FieldNotFoundError(f"Can't found field '{field_name}' in model {self.model}")
-
-
-        try:
-            converter = self._converters[column]
-        except KeyError:
-            return self._convert_column_for_which_no_converter_found(column, field_name)
-
-        return converter.convert(column, field_name)
-
-    @abc.abstractmethod
-    def _get_column_by_name(self, name: str) -> Any:
         pass
 
     @abc.abstractmethod

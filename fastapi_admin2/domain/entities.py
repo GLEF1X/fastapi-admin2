@@ -11,6 +11,15 @@ class AbstractAdmin:
 
 
 @dataclass
+class PagingMetadata:
+    page_size: int
+    page_num: int = 0
+    total_pages: int = 0
+    from_item: int = 0
+    to_item: int = 0
+
+
+@dataclass
 class ResourceList:
+    paging_meta: PagingMetadata
     models: Sequence[Any] = ()
-    total_entries_count: int = 0

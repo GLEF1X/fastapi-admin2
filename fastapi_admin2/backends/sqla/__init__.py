@@ -15,7 +15,7 @@ from fastapi_admin2.providers.security.dependencies import AdminDaoDependencyMar
 from fastapi_admin2.controllers.dependencies import ModelListDependencyMarker, DeleteOneDependencyMarker, \
     DeleteManyDependencyMarker
 from . import filters
-from .model_resource import Model
+from .model_resource import ModelView
 
 
 class SQLAlchemyBackend:

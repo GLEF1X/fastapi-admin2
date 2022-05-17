@@ -1,4 +1,5 @@
-from typing import Optional, Mapping, Any
+from dataclasses import dataclass, field
+from typing import Optional, Mapping, Any, List, Callable
 
 from starlette.requests import Request
 
@@ -6,31 +7,17 @@ from fastapi_admin2.ui.widgets import displays, inputs
 from fastapi_admin2.ui.widgets.inputs import Input
 
 
+@dataclass
 class Field:
     name: str
     label: str
-    display: displays.Display
-    input: inputs.Input
+    display: displays.Display = field(default_factory=displays.Display)
+    input: inputs.Input = field(default_factory=inputs.Input)
+    validators: List[Callable[[Any], bool]] = field(default_factory=list)
 
-    def __init__(
-            self,
-            name: str,
-            label: Optional[str] = None,
-            display: Optional[displays.Display] = None,
-            input_: Optional[Input] = None,
-    ):
-        self.name = name
-        self.label = label or name.title()
-
-        if not display:
-            display = displays.Display()
-        display.context.update(label=self.label)
-        self.display = display
-
-        if not input_:
-            input_ = inputs.Input()
-        input_.context.update(label=self.label, name=name)
-        self.input = input_
+    def __post_init__(self) -> None:
+        self.display.context.update(label=self.label)
+        self.input.context.update(label=self.label)
 
 
 class ComputedField(Field):

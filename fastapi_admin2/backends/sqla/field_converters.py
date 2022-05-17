@@ -1,10 +1,34 @@
+import abc
+import inspect
+
 from sqlalchemy import Column
 
 from fastapi_admin2.ui.resources.model import ColumnToFieldConverter, FieldSpec
 from fastapi_admin2.ui.widgets import displays, inputs
 
 
-class BooleanColumnToFieldConverter(ColumnToFieldConverter):
+class SQLAlchemyColumnToFieldConverter(ColumnToFieldConverter, abc.ABC):
+    def is_suitable(self, column: Column) -> bool:
+        types = inspect.getmro(column)
+
+        # Search by module + name
+        for col_type in types:
+            type_string = f"{col_type.__module__}.{col_type.__name__}"
+
+            if type_string in self.converts:
+                return True
+
+        # Search by name
+        for col_type in types:
+            if col_type.__name__ in self.converts:
+                return True
+
+        return False
+
+
+class BooleanColumnToFieldConverter(SQLAlchemyColumnToFieldConverter):
+    converts = ["Boolean", "sqlalchemy.dialects.mssql.base.BIT"]
+
     def _convert_column_to_field_spec(self, column: Column) -> FieldSpec:
         return FieldSpec(
             display=displays.Boolean(),
@@ -12,7 +36,9 @@ class BooleanColumnToFieldConverter(ColumnToFieldConverter):
         )
 
 
-class DatetimeColumnToFieldConverter(ColumnToFieldConverter):
+class DatetimeColumnToFieldConverter(SQLAlchemyColumnToFieldConverter):
+    converts = "DateTime"
+
     def _convert_column_to_field_spec(self, column: Column) -> FieldSpec:
         if column.default or column.server_default:
             input_ = inputs.DisplayOnly()
@@ -25,7 +51,9 @@ class DatetimeColumnToFieldConverter(ColumnToFieldConverter):
         )
 
 
-class DateColumnToFieldConverter(ColumnToFieldConverter):
+class DateColumnToFieldConverter(SQLAlchemyColumnToFieldConverter):
+    converts = "Date"
+
     def _convert_column_to_field_spec(self, column: Column) -> FieldSpec:
         return FieldSpec(
             display=displays.DateDisplay(),
@@ -33,7 +61,9 @@ class DateColumnToFieldConverter(ColumnToFieldConverter):
         )
 
 
-class EnumColumnToFieldConverter(ColumnToFieldConverter):
+class EnumColumnToFieldConverter(SQLAlchemyColumnToFieldConverter):
+    converts = "sqlalchemy.sql.sqltypes.Enum"
+
     def _convert_column_to_field_spec(self, column: Column) -> FieldSpec:
         return FieldSpec(
             display=displays.Display(),
@@ -45,7 +75,9 @@ class EnumColumnToFieldConverter(ColumnToFieldConverter):
         )
 
 
-class JSONColumnToFieldConverter(ColumnToFieldConverter):
+class JSONColumnToFieldConverter(SQLAlchemyColumnToFieldConverter):
+    converts = "JSON"
+
     def _convert_column_to_field_spec(self, column: Column) -> FieldSpec:
         return FieldSpec(
             display=displays.Json(),
@@ -53,7 +85,9 @@ class JSONColumnToFieldConverter(ColumnToFieldConverter):
         )
 
 
-class StringColumnToFieldConverter(ColumnToFieldConverter):
+class StringColumnToFieldConverter(SQLAlchemyColumnToFieldConverter):
+    converts = ['Text', 'LargeBinary', 'Binary', 'CIText']
+
     def _convert_column_to_field_spec(self, column: Column) -> FieldSpec:
         placeholder = column.description or ""
         return FieldSpec(
@@ -64,7 +98,9 @@ class StringColumnToFieldConverter(ColumnToFieldConverter):
         )
 
 
-class IntegerColumnToFieldConverter(ColumnToFieldConverter):
+class IntegerColumnToFieldConverter(SQLAlchemyColumnToFieldConverter):
+    converts = 'Integer'
+
     def _convert_column_to_field_spec(self, column: Column) -> FieldSpec:
         placeholder = column.description or ""
         return FieldSpec(

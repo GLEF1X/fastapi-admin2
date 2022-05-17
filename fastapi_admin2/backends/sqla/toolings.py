@@ -161,3 +161,12 @@ def is_association_proxy(attr: Any) -> bool:
     if hasattr(attr, 'parent'):
         attr = attr.parent
     return hasattr(attr, 'extension_type') and attr.extension_type == ASSOCIATION_PROXY
+
+
+def filter_foreign_columns(base_table, columns):
+    """
+        Return list of columns that belong to passed table.
+        :param base_table: Table to check against
+        :param columns: List of columns to filter
+    """
+    return filter(lambda c: c.table == base_table, columns)

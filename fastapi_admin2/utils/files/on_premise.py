@@ -24,7 +24,7 @@ class OnPremiseFileManager(FileManager):
         self._uploads_dir = pathlib.Path(uploads_dir)
         self._filename_generator = filename_generator
 
-    async def download_file(self, file: UploadFile) -> Union[Link, os.PathLike]:
+    async def upload_file(self, file: UploadFile) -> Union[Link, os.PathLike]:
         if self._filename_generator:
             filename = self._filename_generator(file)
         else:

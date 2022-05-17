@@ -1,8 +1,8 @@
 import uuid
 from typing import TYPE_CHECKING, List, Optional
 
-from aioredis import Redis
 from fastapi import Depends, HTTPException
+from redis.asyncio.client import Redis
 from starlette.middleware.base import RequestResponseEndpoint, BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
@@ -41,7 +41,7 @@ class SecurityProvider(Provider):
     def __init__(
             self,
             file_manager: FileManager,
-            redis: Redis,
+            redis_connection_uri: str,
             password_hasher: PasswordHasherProto,
             login_path: str = "/login",
             logout_path: str = "/logout",
@@ -58,9 +58,16 @@ class SecurityProvider(Provider):
         self.login_logo_url = login_logo_url
         self._password_hasher = password_hasher
         self._file_manager = file_manager
-        self._redis = redis
+        self._redis_connection_uri = redis_connection_uri
         self._keep_logined_with_checked_remember_me_in_seconds = keep_logined_with_checked_remember_me_in_seconds
         self._keep_logined_in_seconds = keep_logined_in_seconds
+        self._redis: Optional[Redis] = None
+
+    def _get_redis(self) -> Redis:
+        if self._redis is None:
+            self._redis = Redis.from_url(self._redis_connection_uri)
+
+        return self._redis
 
     def register(self, app: "FastAPIAdmin") -> None:
         super(SecurityProvider, self).register(app)
@@ -129,14 +136,14 @@ class SecurityProvider(Provider):
             path=request.app.admin_path,
             httponly=True
         )
-        await self._redis.set(SESSION_ID_KEY.format(session_id=session_id), admin.id, ex=expires_in_seconds)
+        await self._get_redis().set(SESSION_ID_KEY.format(session_id=session_id), admin.id, ex=expires_in_seconds)
         return response
 
     async def logout(self, request: Request) -> Response:
         response = to_login_page(request)
         response.delete_cookie(self.session_cookie_key, path=request.app.admin_path)
         session_id = request.cookies[self.session_cookie_key]
-        await self._redis.delete(SESSION_ID_KEY.format(session_id=session_id))
+        await self._get_redis().delete(SESSION_ID_KEY.format(session_id=session_id))
         return response
 
     async def authenticate_middleware(
@@ -189,7 +196,7 @@ class SecurityProvider(Provider):
                 context={"request": request, "error": request.state.gettext("confirm_password_different")},
             )
 
-        path_to_profile_pic = await self._file_manager.download_file(init_admin.profile_pic)
+        path_to_profile_pic = await self._file_manager.upload_file(init_admin.profile_pic)
 
         await admin_dao.add_admin(
             username=init_admin.username,

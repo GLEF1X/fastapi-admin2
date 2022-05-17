@@ -3,17 +3,18 @@ from typing import Any
 from fastapi import Depends
 from sqlalchemy import select, func, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlapagination import JoinBasedPaginator
 from starlette.requests import Request
 
-from fastapi_admin2.domain.entities import ResourceList
-from fastapi_admin2.depends import get_model_resource, get_orm_model_by_resource_name
 from fastapi_admin2.backends.sqla.markers import AsyncSessionDependencyMarker
 from fastapi_admin2.backends.sqla.toolings import include_where_condition_by_pk
-from fastapi_admin2.ui.resources.model import AbstractModelResource
+from fastapi_admin2.depends import get_model_resource, get_orm_model_by_resource_name
+from fastapi_admin2.domain.entities import ResourceList, PagingMetadata
+from fastapi_admin2.ui.resources.model import AbstractModelView
 
 
 async def get_resource_list(request: Request,
-                            model_resource: AbstractModelResource = Depends(get_model_resource),
+                            model_resource: AbstractModelView = Depends(get_model_resource),
                             page_size: int = 10,
                             model=Depends(get_orm_model_by_resource_name), page_num: int = 1,
                             session: AsyncSession = Depends(AsyncSessionDependencyMarker)) -> ResourceList:
@@ -26,23 +27,26 @@ async def get_resource_list(request: Request,
         query=select_stmt
     )
 
-    page_size = page_size
-    if page_size:
-        select_stmt = select_stmt.limit(page_size)
-    else:
-        page_size = model_resource.page_size
-
-    select_stmt = select_stmt.offset((page_num - 1) * page_size)
+    paginator = JoinBasedPaginator(select_stmt, page_size, bookmark={
+        "offset": (page_num - 1) * page_size
+    })
+    select_stmt = paginator.get_modified_sql_statement()
 
     async with session.begin():
         rows = (await session.execute(select_stmt)).all()
+        page = paginator.parse_result(rows)
 
     try:
-        total_entries_count = rows[0][1]
-        orm_models = [row[0] for row in rows]
-        return ResourceList(models=orm_models, total_entries_count=total_entries_count)
+        return ResourceList(
+            models=list(page),
+            paging_meta=PagingMetadata(
+                page_size=page_size,
+                page_num=page_num,
+                total_pages=page.total_pages_count,
+            )
+        )
     except IndexError:
-        return ResourceList()
+        return ResourceList(paging_meta=PagingMetadata(page_size=page_size))
 
 
 async def delete_resource_by_id(id_: str, session: AsyncSession = Depends(AsyncSessionDependencyMarker),

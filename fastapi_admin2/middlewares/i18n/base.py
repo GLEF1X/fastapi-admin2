@@ -39,7 +39,7 @@ class AbstractI18nMiddleware(BaseHTTPMiddleware, ABC):
 
         request.app.templates.env.globals['gettext'] = request.state.gettext
         request.app.templates.env.globals['current_locale'] = current_locale
-        request.app.templates.env.globals['available_languages'] = list(self.iter_founded_locales())
+        request.app.templates.env.globals['available_languages'] = list(self.iter_locales())
 
         with self._translator.internationalized(new_locale=current_locale):
             response = await call_next(request)
@@ -47,7 +47,7 @@ class AbstractI18nMiddleware(BaseHTTPMiddleware, ABC):
         response.set_cookie(key="language", value=current_locale, path=request.app.admin_path)
         return response
 
-    def iter_founded_locales(self) -> List[Language]:
+    def iter_locales(self) -> List[Language]:
         for t in self._translator.available_translations:
             try:
                 lang = self._languages.get(alpha_2=t)

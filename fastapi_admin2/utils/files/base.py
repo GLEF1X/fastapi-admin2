@@ -10,5 +10,5 @@ Link = NewType("Link", str)
 class FileManager(abc.ABC):
 
     @abc.abstractmethod
-    async def download_file(self, file: UploadFile) -> Union[Link, os.PathLike]:
+    async def upload_file(self, file: UploadFile) -> Union[Link, os.PathLike]:
         pass

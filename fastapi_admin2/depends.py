@@ -6,7 +6,7 @@ from starlette.requests import Request
 from starlette.status import HTTP_404_NOT_FOUND
 
 from fastapi_admin2.exceptions import InvalidResource
-from fastapi_admin2.ui.resources import Dropdown, Link, AbstractModelResource, Resource
+from fastapi_admin2.ui.resources import Dropdown, Link, AbstractModelView, Resource
 
 
 def get_orm_model_by_resource_name(
@@ -27,8 +27,8 @@ async def get_model_resource(
         orm_model: Any = Depends(
             get_orm_model_by_resource_name
         )
-) -> AbstractModelResource:
-    model_resource_type = request.app.get_model_resource_type(orm_model)  # type: Optional[Type[AbstractModelResource]]
+) -> AbstractModelView:
+    model_resource_type = request.app.get_model_resource_type(orm_model)  # type: Optional[Type[AbstractModelView]]
     if not model_resource_type:
         raise HTTPException(status_code=HTTP_404_NOT_FOUND)
 
@@ -52,7 +52,7 @@ def _get_resources(resources: List[Type[Resource]]):
             item["type"] = "link"
             item["url"] = resource.url
             item["target"] = resource.target
-        elif issubclass(resource, AbstractModelResource):
+        elif issubclass(resource, AbstractModelView):
             item["type"] = "model"
             item["model"] = resource.model.__name__.lower()
         elif issubclass(resource, Dropdown):

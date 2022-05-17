@@ -10,7 +10,7 @@ from examples.sqlalchemy.settings import BASE_DIR
 from fastapi_admin2.app import FastAPIAdmin
 from fastapi_admin2.backends.sqla import filters
 from fastapi_admin2.backends.sqla.filters import full_text_search_op
-from fastapi_admin2.backends.sqla.model_resource import Model
+from fastapi_admin2.backends.sqla.model_resource import ModelView
 from fastapi_admin2.default_settings import DATETIME_FORMAT
 from fastapi_admin2.enums import HTTPMethod
 from fastapi_admin2.ui.resources import Action, Dropdown, Field, Link, ToolbarAction
@@ -25,6 +25,7 @@ def register(app: FastAPIAdmin):
         ConfigResource,
         Content,
     ]
+    AdminResource()
     for r in resources:
         app.register_resource(r)
 
@@ -35,7 +36,7 @@ class Dashboard(Link):
     url = "/admin"
 
 
-class AdminResource(Model):
+class AdminResource(ModelView):
     label = "Администраторы"
     model = Admin
     icon = "fas fa-user"
@@ -57,21 +58,21 @@ class AdminResource(Model):
             name="renew_password",
             label="Пароль",
             display=displays.InputOnly(),
-            input_=inputs.Password(),
+            input=inputs.Password(),
         ),
-        Field(name="email", label="Email", input_=inputs.Email()),
+        Field(name="email", label="Email", input=inputs.Email()),
         Field(
             name="profile_pic",
             label="Аватарка",
             display=displays.Image(width="40"),
-            input_=inputs.Image(null=True, file_manager=StaticFilesManager(
+            input=inputs.Image(null=True, file_manager=StaticFilesManager(
                 OnPremiseFileManager(uploads_dir=BASE_DIR / "static" / "uploads")
             )),
         ),
         Field(
             "created_at",
             label="Дата создания",
-            input_=inputs.DateTime(),
+            input=inputs.DateTime(),
             display=displays.DatetimeDisplay()
         ),
     ]
@@ -92,12 +93,12 @@ class AdminResource(Model):
 
 
 class Content(Dropdown):
-    class CategoryResource(Model):
+    class CategoryResource(ModelView):
         model = Category
         label = "Категории"
         fields = ["id", "name", "slug", "created_at"]
 
-    class ProductResource(Model):
+    class ProductResource(ModelView):
         label = "Продукты"
         model = Product
         filters = [
@@ -110,13 +111,13 @@ class Content(Dropdown):
         fields = [
             "id",
             Field("name", label="Имя"),
-            Field("is_reviewed", label="Готов к продаже", input_=inputs.Switch(), display=displays.Boolean()),
-            Field("type", label="Тип", input_=inputs.Enum(enums.ProductType)),
+            Field("is_reviewed", label="Готов к продаже", input=inputs.Switch(), display=displays.Boolean()),
+            Field("type", label="Тип", input=inputs.Enum(enums.ProductType)),
             Field(name="image", label="Картинка", display=displays.Image(width="40")),
-            Field(name="body", label="Описание", input_=inputs.Editor()),
+            Field(name="body", label="Описание", input=inputs.Editor()),
             Field(
                 "created_at", label="Дата создания",
-                input_=inputs.DateTime(default=datetime.now().strftime(DATETIME_FORMAT))
+                input=inputs.DateTime(default=datetime.now().strftime(DATETIME_FORMAT))
             ),
             # Field(
             #     "category_id",
@@ -130,7 +131,7 @@ class Content(Dropdown):
     resources = [ProductResource, CategoryResource]
 
 
-class ConfigResource(Model):
+class ConfigResource(ModelView):
     label = "Конфигурация"
     model = Config
     icon = "fas fa-cogs"
@@ -146,12 +147,12 @@ class ConfigResource(Model):
             "value",
             label="значение",
             display=displays.Json(dumper=orjson.dumps),
-            input_=inputs.Json(dumper=orjson.dumps)
+            input=inputs.Json(dumper=orjson.dumps)
         ),
         Field(
             name="status",
             label="статус",
-            input_=inputs.RadioEnum(enums.Status, default=enums.Status.on),
+            input=inputs.RadioEnum(enums.Status, default=enums.Status.on),
         ),
     ]
 
