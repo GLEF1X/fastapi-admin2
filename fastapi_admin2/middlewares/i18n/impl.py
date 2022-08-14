@@ -11,10 +11,7 @@ from fastapi_admin2.middlewares.i18n.base import AbstractI18nMiddleware
 
 try:
     from babel import Locale
-
-    babel_lib_installed = True
 except ImportError:  # pragma: no cover
-    babel_lib_installed = False
     Locale = None
 
 
@@ -43,8 +40,8 @@ class I18nMiddleware(AbstractI18nMiddleware):
 
 
 def _raise_if_babel_not_installed() -> None:
-    if babel_lib_installed:  # pragma: no cover
-        return None
+    if Locale is not None:  # pragma: no cover
+        return
 
     raise RequiredThirdPartyLibNotInstalled(
         "Babel",
