@@ -4,7 +4,7 @@ from fastapi import Depends
 from starlette.requests import Request
 from tortoise import Model
 
-from fastapi_admin2.domain.entities import ResourceList
+from fastapi_admin2.entities import ResourceList
 from fastapi_admin2.depends import get_model_resource, get_orm_model_by_resource_name
 from fastapi_admin2.resources import AbstractModelResource
 

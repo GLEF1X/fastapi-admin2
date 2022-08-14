@@ -18,7 +18,7 @@ async def server_error_exception(
     return await request.state.create_html_response(
         "errors/500.html",
         status_code=HTTP_500_INTERNAL_SERVER_ERROR,
-        context={"request": request},
+        context={"request": request, "exc": exc},
     )
 
 

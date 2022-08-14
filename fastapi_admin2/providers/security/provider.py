@@ -9,7 +9,7 @@ from starlette.responses import RedirectResponse, Response
 from starlette.status import HTTP_303_SEE_OTHER, HTTP_401_UNAUTHORIZED
 
 from fastapi_admin2.depends import get_resources
-from fastapi_admin2.domain.entities import AbstractAdmin
+from fastapi_admin2.entities import AbstractAdmin
 from fastapi_admin2.providers import Provider
 from fastapi_admin2.providers.security.dependencies import AdminDaoDependencyMarker, EntityNotFound, \
     AdminDaoProto

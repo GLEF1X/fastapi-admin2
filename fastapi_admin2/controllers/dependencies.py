@@ -1,4 +1,4 @@
-from fastapi_admin2.domain.entities import ResourceList
+from fastapi_admin2.entities import ResourceList
 from fastapi_admin2.utils.depends import DependencyMarker
 
 

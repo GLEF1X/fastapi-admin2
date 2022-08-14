@@ -1,6 +1,6 @@
 from tortoise import fields, Model
 
-from fastapi_admin2.domain.entities import AbstractAdmin
+from fastapi_admin2.entities import AbstractAdmin
 
 
 class AbstractAdminModel(Model, AbstractAdmin):
