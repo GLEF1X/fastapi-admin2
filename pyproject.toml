@@ -10,9 +10,9 @@ python = "^3.8"
 babel = "^2.9.1"
 aiofiles = "0.8.0"
 aioredis = "^2.0.1"
-fastapi = "^0.75.0"
-jinja2 = "*"
-python-multipart = "*"
+fastapi = "^0.79.0"
+jinja2 = "3.1.2"
+python-multipart = "0.0.5"
 pendulum = "2.1.2"
 argon2-cffi = "^21.3.0"
 orjson = "^3.6.6"
@@ -20,34 +20,31 @@ pycountry = "^22.3.5"
 
 [tool.poetry.dev-dependencies]
 # lint
-black = "*"
-flake8 = "*"
-isort = "*"
-mypy = "*"
-pylint = "*"
-# example
-asyncmy = "*"
-python-dotenv = "*"
+black = "22.6.0"
+flake8 = "5.0.4"
+isort = "5.10.1"
+mypy = "0.971"
+python-dotenv = "0.20.0"
 pytest = "^7.1.1"
-pytest-asyncio = "^0.18.3"
+pytest-asyncio = "^0.19.0"
 gunicorn = "^20.1.0"
-uvicorn = { version = "0.17.6", extras = ["standard"] }
+uvicorn = { version = "0.18.2", extras = ["standard"] }
 
 coverage = "^6.2"
 
 # orm dialects
-tortoise-orm = "0.19.0"
+tortoise-orm = "0.19.2"
 SQLAlchemy = "^1.4.34"
-sqlalchemy2-stubs = "0.0.2a21"
+sqlalchemy2-stubs = "0.0.2a25"
 types-aiofiles = "*"
 
 # subdeps of orm dialects
-asyncpg = { git = "https://github.com/MagicStack/asyncpg", branch = "master"}
+asyncpg = "0.26"
 
 # example
 dynaconf = "^3.1.7"
 
-aioboto3 = "^9.5.0"
+aioboto3 = "^10.0.0"
 pycountry = "^22.3.5"
 
 [build-system]
