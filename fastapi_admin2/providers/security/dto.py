@@ -6,7 +6,7 @@ from pydantic import BaseModel, validator
 from fastapi_admin2.utils.forms import as_form
 
 
-@as_form()
+@as_form
 class InitAdmin(BaseModel):
     username: str
     password: str
