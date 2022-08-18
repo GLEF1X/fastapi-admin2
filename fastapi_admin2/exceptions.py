@@ -59,5 +59,3 @@ class RequiredThirdPartyLibNotInstalled(Exception):
             f"or fastapi-admin2 with {self.thing_that_cant_work_without_lib} support"
             f" (`pip install fastapi-admin2{self.can_be_installed_with_ext}`)"
         )
-
-

@@ -5,7 +5,7 @@ from starlette.types import ASGIApp
 
 from fastapi_admin2.exceptions import RequiredThirdPartyLibNotInstalled
 from fastapi_admin2.i18n.exceptions import UnableToExtractLocaleFromRequestError
-from fastapi_admin2.i18n.translator import Translator
+from fastapi_admin2.i18n.localizer import Localizer
 from fastapi_admin2.i18n.utils import get_locale_from_request
 from fastapi_admin2.middlewares.i18n.base import AbstractI18nMiddleware
 
@@ -22,7 +22,7 @@ class I18nMiddleware(AbstractI18nMiddleware):
     """
 
     def __init__(self, app: ASGIApp,
-                 translator: Optional[Translator] = None, ) -> None:
+                 translator: Optional[Localizer] = None, ) -> None:
         super().__init__(app, translator)
         _raise_if_babel_not_installed()
 

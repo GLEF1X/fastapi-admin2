@@ -8,7 +8,7 @@ from fastapi_admin2.default_settings import PATH_TO_LOCALES
 from fastapi_admin2.i18n.lazy_proxy import LazyProxy
 
 
-class Translator(abc.ABC):
+class Localizer(abc.ABC):
     @abc.abstractmethod
     def gettext(
             self, singular: str, plural: Optional[str] = None, n: int = 1, locale: Optional[str] = None
@@ -40,7 +40,7 @@ class Translator(abc.ABC):
         pass
 
 
-class I18nTranslator(Translator):
+class I18NLocalizer(Localizer):
     def __init__(
             self,
             *,

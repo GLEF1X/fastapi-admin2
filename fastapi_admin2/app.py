@@ -19,7 +19,7 @@ from .middlewares.i18n.base import AbstractI18nMiddleware
 from .middlewares.i18n.impl import I18nMiddleware
 from .middlewares.theme import theme_middleware
 from .middlewares.templating import create_template_middleware
-from .i18n.translator import I18nTranslator
+from .i18n.localizer import I18NLocalizer
 from .ui.resources import AbstractModelResource as ModelResource
 from .ui.resources import Dropdown
 from .ui.resources.base import Resource
@@ -95,7 +95,7 @@ class FastAPIAdmin(FastAPI):
         self.logo_url = logo_url
         self.favicon_url = favicon_url
 
-        translator = I18nTranslator()
+        translator = I18NLocalizer()
 
         self.templates = JinjaTemplates()
         self.templates.env.add_extension("jinja2.ext.i18n")

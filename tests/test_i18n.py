@@ -4,37 +4,37 @@ import pytest
 from fastapi import FastAPI
 from starlette.requests import Request
 
-from fastapi_admin2.i18n import Translator, I18nMiddleware
+from fastapi_admin2.i18n import Localizer, I18nMiddleware
 from fastapi_admin2.i18n import get_i18n, lazy_gettext, gettext
 from tests.conftest import DATA_DIR
 
 
 @pytest.fixture(name="i18n")
-def i18n_fixture() -> Translator:
-    return Translator(path_to_default_translations=DATA_DIR / "locales")
+def i18n_fixture() -> Localizer:
+    return Localizer(path_to_default_translations=DATA_DIR / "locales")
 
 
 @pytest.fixture(name="i18n_extra")
 def i18n_fixture_with_extra_translations():
-    return Translator(path_to_default_translations=DATA_DIR / "locales",
-                      path_to_extra_translations=DATA_DIR / "extra_locales")
+    return Localizer(path_to_default_translations=DATA_DIR / "locales",
+                     path_to_extra_translations=DATA_DIR / "extra_locales")
 
 
 class TestI18nCore:
-    def test_init(self, i18n: Translator):
+    def test_init(self, i18n: Localizer):
         assert set(i18n.available_locales) == {"en", "uk"}
 
-    def test_reload(self, i18n: Translator):
+    def test_reload(self, i18n: Localizer):
         i18n.reload_locales()
         assert set(i18n.available_locales) == {"en", "uk"}
 
-    def test_current_locale(self, i18n: Translator):
+    def test_current_locale(self, i18n: Localizer):
         assert i18n.current_locale == "en"
         i18n.current_locale = "uk"
         assert i18n.current_locale == "uk"
         assert i18n.ctx_locale.get() == "uk"
 
-    def test_use_locale(self, i18n: Translator):
+    def test_use_locale(self, i18n: Localizer):
         assert i18n.current_locale == "en"
         with i18n.use_locale("uk"):
             assert i18n.current_locale == "uk"
@@ -43,7 +43,7 @@ class TestI18nCore:
             assert i18n.current_locale == "uk"
         assert i18n.current_locale == "en"
 
-    def test_get_i18n(self, i18n: Translator):
+    def test_get_i18n(self, i18n: Localizer):
         with pytest.raises(LookupError):
             get_i18n()
 
@@ -73,7 +73,7 @@ class TestI18nCore:
             ["it", dict(singular="test", plural="test2", n=2), "test2"],
         ],
     )
-    def test_gettext(self, i18n: Translator, locale: str, case: Dict[str, Any], result: str):
+    def test_gettext(self, i18n: Localizer, locale: str, case: Dict[str, Any], result: str):
         if locale is not None:
             i18n.current_locale = locale
         with i18n.internationalized():
@@ -102,7 +102,7 @@ class TestSimpleI18nMiddleware:
             }), "test"],
         ],
     )
-    async def test_middleware(self, i18n: Translator, req: Request, expected_result: str):
+    async def test_middleware(self, i18n: Localizer, req: Request, expected_result: str):
         middleware = I18nMiddleware(app=FastAPI(), translator=i18n)
         result = await middleware.dispatch(
             req,
