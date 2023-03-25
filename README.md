@@ -24,8 +24,8 @@ but it will become it.
 
 ## How does it look like?
 
-![](https://github.com/GLEF1X/fastapi-admin2/blob/dev/docs/_static/example.png?raw=true)
+![](https://github.com/GLEF1X/fastapi-admin2/blob/master/docs/_static/example.png?raw=true)
 
 
-![](https://github.com/GLEF1X/fastapi-admin2/blob/dev/docs/_static/dark_mode.png?raw=true)
+![](https://github.com/GLEF1X/fastapi-admin2/blob/master/docs/_static/dark_mode.png?raw=true)
 
