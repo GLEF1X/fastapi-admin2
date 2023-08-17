@@ -22,7 +22,7 @@ but it will become it.
 * Write tests to achieve 100% code coverage
 * Keyset pagination
 
-## How does it look like?
+## What does it look like?
 
 ![](https://github.com/GLEF1X/fastapi-admin2/blob/master/docs/_static/example.png?raw=true)
 
