@@ -17,7 +17,7 @@ argon2-cffi = { optional = true, version = "^21.3.0"}
 
 [tool.poetry.dev-dependencies]
 # lint
-black = "22.6.0"
+black = "24.3.0"
 flake8 = "5.0.4"
 isort = "5.10.1"
 mypy = "0.971"
